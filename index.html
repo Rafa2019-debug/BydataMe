@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Perapihan Data Final</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header-box { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; border-top: 5px solid #2ecc71;}
+        h2 { text-align: center; color: #2c3e50; margin-top: 0; }
+        p.subtitle { text-align: center; color: #7f8c8d; margin-bottom: 20px; font-size: 14px; }
+        
+        .controls { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 15px;}
+        button { background-color: #3498db; color: #fff; border: none; padding: 12px 20px; font-size: 15px; font-weight: bold; border-radius: 5px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
+        button:hover { background-color: #2980b9; transform: translateY(-1px); }
+        .btn-copy { background-color: #2ecc71; }
+        .btn-copy:hover { background-color: #27ae60; }
+        .btn-clear { background-color: #e74c3c; }
+        .btn-clear:hover { background-color: #c0392b; }
+        
+        textarea.input-box { width: 100%; height: 180px; padding: 15px; border: 2px dashed #bdc3c7; border-radius: 5px; font-family: monospace; font-size: 14px; resize: vertical; box-sizing: border-box; background-color: #fafafa; transition: 0.3s;}
+        textarea.input-box:focus { outline: none; border-color: #3498db; background-color: #fff; }
+
+        .results-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
+        .result-card { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; flex-direction: column; border-top: 4px solid #3498db; }
+        .card-label { font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 14px; }
+        .result-card textarea { width: 100%; height: 280px; border: 1px solid #eee; background: #fdfdfd; border-radius: 4px; padding: 10px; font-family: monospace; font-size: 14px; resize: vertical; box-sizing: border-box; margin-bottom: 10px; }
+        .card-actions { display: flex; gap: 10px; justify-content: flex-end; }
+        .card-actions button { padding: 6px 12px; font-size: 12px; box-shadow: none;}
+        
+        .empty-state { grid-column: 1 / -1; text-align: center; color: #95a5a6; padding: 40px; background: #fff; border-radius: 8px; border: 2px dashed #bdc3c7; font-size: 15px; line-height: 1.6;}
+        .top-action-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;}
+        .top-action-bar h3 { margin: 0; color: #2c3e50; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-box">
+            <h2>✅ Aplikasi Perapihan Data Final</h2>
+            <p class="subtitle">Nomor urut otomatis dipisah, salin hanya isi data murni.</p>
+            
+            <textarea id="inputData" class="input-box" placeholder="Paste data WhatsApp di sini..."></textarea>
+            
+            <div class="controls" style="margin-top: 15px;">
+                <button onclick="processData()">✨ PROSES DATA SEKARANG</button>
+                <button class="btn-clear" onclick="clearAllData()">🗑️ Hapus Semua / Reset</button>
+            </div>
+        </div>
+
+        <div class="top-action-bar">
+            <h3>📋 Hasil Terkoreksi: <span id="dataCount">0</span> Data</h3>
+            <button class="btn-copy" onclick="copyAllData()">📋 Salin Semua Isi Data</button>
+        </div>
+
+        <div id="outputContainer" class="results-container">
+            <div class="empty-state">Belum ada data.<br>Silakan paste di atas lalu klik PROSES.</div>
+        </div>
+    </div>
+
+    <script>
+        let savedData = [];
+        const STORAGE_KEY = 'DataPerapihanEkspedisi_Final';
+
+        window.onload = function() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    savedData = JSON.parse(stored);
+                    if (savedData.length > 0) renderCards();
+                }
+            } catch(e) {}
+        };
+
+        function processData() {
+            let container = document.getElementById('outputContainer');
+            let raw = document.getElementById('inputData').value;
+            
+            if (!raw || raw.trim() === "") {
+                alert("Harap masukkan data terlebih dahulu!");
+                return;
+            }
+
+            raw = raw.replace(/[\u200B-\u200D\uFEFF\u200E\u200F]/g, '');
+            let lines = raw.split('\n');
+            let entries = [];
+            let currentEntry = null;
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                let starIdx = line.indexOf('*');
+                if (starIdx > -1) {
+                    let nextChar = line.charAt(starIdx + 1);
+                    if (/[a-zA-Z]/.test(nextChar)) {
+                        line = line.substring(starIdx);
+                    }
+                }
+
+                if (line.startsWith('*')) {
+                    if (!currentEntry) {
+                        currentEntry = { headers: [], body: [] };
+                    } else if (currentEntry.body.length > 0) {
+                        entries.push(currentEntry);
+                        currentEntry = { headers: [], body: [] };
+                    }
+                    currentEntry.headers.push(line);
+                } 
+                else if (line !== '') {
+                    if (line.match(/^\[\d{1,2}[\/\-]\d{1,2}/) || line.match(/^\d{1,2}[\/\-]\d{1,2}.*?-/)) continue;
+                    if (currentEntry) currentEntry.body.push(line);
+                } 
+                else {
+                    if (currentEntry && currentEntry.body.length > 0) currentEntry.body.push('');
+                }
+            }
+
+            if (currentEntry && (currentEntry.headers.length > 0 || currentEntry.body.length > 0)) {
+                entries.push(currentEntry);
+            }
+
+            let newProcessed = entries.map(entry => {
+                let headerParts = [];
+                entry.headers.forEach(h => {
+                    let parts = h.replace(/^\*/, '').split(',');
+                    parts.forEach(p => { if (p.trim()) headerParts.push(p.trim()); });
+                });
+                let finalHeader = '*' + headerParts.join(', ');
+                while(entry.body.length > 0 && entry.body[entry.body.length-1] === '') entry.body.pop();
+                let bodyText = entry.body.join('\n').trim();
+                bodyText = bodyText.replace(/^([^,]+),\s*\d{2}-\d{2}-(\d{4})$/gm, '$1, $2');
+                bodyText = bodyText.replace(/\n{3,}/g, '\n\n');
+                return finalHeader + '\n\n' + bodyText; 
+            });
+
+            savedData = savedData.concat(newProcessed);
+            savedData.sort((a, b) => {
+                let cleanA = a.replace('*', '').split('\n')[0].trim();
+                let cleanB = b.replace('*', '').split('\n')[0].trim();
+                return cleanA.localeCompare(cleanB);
+            });
+
+            saveToStorage();
+            renderCards();
+            document.getElementById('inputData').value = ''; 
+        }
+
+        function renderCards() {
+            const container = document.getElementById('outputContainer');
+            document.getElementById('dataCount').innerText = savedData.length;
+            container.innerHTML = '';
+
+            savedData.forEach((content, index) => {
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.innerHTML = `
+                    <div class="card-label">Data Ke-${index + 1}</div>
+                    <textarea oninput="handleEdit(${index}, this)">${content}</textarea>
+                    <div class="card-actions">
+                        <button class="btn-copy" onclick="copySingleData(${index}, this)">Salin Data Ini</button>
+                        <button class="btn-clear" onclick="deleteSingleData(${index})">Hapus</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function handleEdit(index, textareaElement) {
+            savedData[index] = textareaElement.value;
+            saveToStorage();
+        }
+
+        function deleteSingleData(index) {
+            if(confirm("Hapus data ini?")) {
+                savedData.splice(index, 1);
+                saveToStorage();
+                renderCards();
+            }
+        }
+
+        async function copySingleData(index, btn) {
+            const textarea = btn.parentElement.previousElementSibling;
+            const text = textarea.value;
+
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch (err) {
+                const temp = document.createElement('textarea');
+                temp.value = text;
+                temp.setAttribute('readonly', '');
+                temp.style.position = 'fixed';
+                temp.style.top = '-9999px';
+                temp.style.opacity = '0';
+                document.body.appendChild(temp);
+
+                const isi = document.activeElement;
+                temp.select();
+                temp.setSelectionRange(0, 999999);
+
+                document.execCommand('copy');
+                document.body.removeChild(temp);
+
+                if (isi) isi.blur();
+            }
+
+            btn.blur();
+            btn.innerText = "Tersalin!";
+            setTimeout(() => { btn.innerText = "Salin Data Ini"; }, 1500);
+        }
+
+        async function copyAllData() {
+            if(savedData.length === 0) return alert("Kosong!");
+
+            const allText = savedData.join('\n\n\n');
+
+            try {
+                await navigator.clipboard.writeText(allText);
+            } catch (err) {
+                const temp = document.createElement('textarea');
+                temp.value = allText;
+                temp.setAttribute('readonly', '');
+                temp.style.position = 'fixed';
+                temp.style.top = '-9999px';
+                temp.style.opacity = '0';
+                document.body.appendChild(temp);
+
+                temp.select();
+                temp.setSelectionRange(0, 999999);
+
+                document.execCommand('copy');
+                document.body.removeChild(temp);
+            }
+
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
+
+            alert("✅ Seluruh data murni (tanpa nomor) berhasil disalin!");
+        }
+
+        function clearAllData() {
+            if(confirm("Hapus semua data?")) {
+                savedData = [];
+                localStorage.removeItem(STORAGE_KEY);
+                renderCards();
+            }
+        }
+
+        function saveToStorage() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
+        }
+    </script>
+</body>
+</html>
