@@ -3,251 +3,617 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Perapihan Data Final</title>
+    <title>ByDataKu Full Auto Detect - Checklist System v10</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .header-box { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; border-top: 5px solid #2ecc71;}
-        h2 { text-align: center; color: #2c3e50; margin-top: 0; }
-        p.subtitle { text-align: center; color: #7f8c8d; margin-bottom: 20px; font-size: 14px; }
+        :root {
+            --primary: #2563eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --whatsapp: #25d366;
+            --whatsapp-hover: #20ba5a;
+            --dark: #000000;
+            --light: #f1f5f9;
+            --border: #000000;
+        }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #e2e8f0;
+            margin: 0;
+            padding: 20px;
+            color: #000000;
+        }
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 2px dashed #94a3b8;
+            padding-bottom: 15px;
+        }
+        .header h1 {
+            color: var(--danger);
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .header p {
+            color: #000000;
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 8px;
+            background: #fef3c7;
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
         
-        .controls { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 15px;}
-        button { background-color: #3498db; color: #fff; border: none; padding: 12px 20px; font-size: 15px; font-weight: bold; border-radius: 5px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
-        button:hover { background-color: #2980b9; transform: translateY(-1px); }
-        .btn-copy { background-color: #2ecc71; }
-        .btn-copy:hover { background-color: #27ae60; }
-        .btn-clear { background-color: #e74c3c; }
-        .btn-clear:hover { background-color: #c0392b; }
+        label {
+            display: block;
+            font-weight: bold;
+            color: #000000;
+            margin-bottom: 8px;
+        }
         
-        textarea.input-box { width: 100%; height: 180px; padding: 15px; border: 2px dashed #bdc3c7; border-radius: 5px; font-family: monospace; font-size: 14px; resize: vertical; box-sizing: border-box; background-color: #fafafa; transition: 0.3s;}
-        textarea.input-box:focus { outline: none; border-color: #3498db; background-color: #fff; }
+        #inputData {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            color: #000000;
+            box-sizing: border-box;
+            resize: vertical;
+            background-color: #ffffff;
+            height: 140px;
+        }
 
-        .results-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
-        .result-card { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; flex-direction: column; border-top: 4px solid #3498db; }
-        .card-label { font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 14px; }
-        .result-card textarea { width: 100%; height: 280px; border: 1px solid #eee; background: #fdfdfd; border-radius: 4px; padding: 10px; font-family: monospace; font-size: 14px; resize: vertical; box-sizing: border-box; margin-bottom: 10px; }
-        .card-actions { display: flex; gap: 10px; justify-content: flex-end; }
-        .card-actions button { padding: 6px 12px; font-size: 12px; box-shadow: none;}
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+            background: var(--light);
+            padding: 15px;
+            border-radius: 8px;
+        }
         
-        .empty-state { grid-column: 1 / -1; text-align: center; color: #95a5a6; padding: 40px; background: #fff; border-radius: 8px; border: 2px dashed #bdc3c7; font-size: 15px; line-height: 1.6;}
-        .top-action-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;}
-        .top-action-bar h3 { margin: 0; color: #2c3e50; }
+        .btn {
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn:hover { opacity: 0.9; box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
+        
+        .btn-blue { background: var(--primary); }
+        .btn-green { background: var(--success); }
+        .btn-gray { background: #475569; }
+        .btn-orange { background: var(--warning); }
+        .btn-red { background: var(--danger); }
+        .btn-wa { background: var(--whatsapp); }
+        .btn-wa:hover { background: var(--whatsapp-hover); }
+        
+        /* Tombol Tandai Selesai Warna Abu Tua dan Kuning */
+        .btn-check { background: #4b5563; } 
+        .btn-uncheck { background: var(--warning); }
+
+        .search-area {
+            background: #f8fafc;
+            border: 2px solid var(--primary);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+        .filter-row {
+            display: block;
+            width: 100%;
+        }
+        .filter-col {
+            display: inline-block;
+            vertical-align: top;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+        .search-input {
+            width: 100%;
+            padding: 11px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            color: #000000;
+            box-sizing: border-box;
+            background-color: #ffffff;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        /* Opsi Sembunyikan Data Selesai */
+        .hide-done-wrapper {
+            margin-top: 10px;
+            display: block;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #1e293b;
+        }
+        .hide-done-wrapper input {
+            transform: scale(1.2);
+            margin-right: 8px;
+            vertical-align: middle;
+            cursor: pointer;
+        }
+
+        .columns-wrapper {
+            display: block;
+            width: 100%;
+            margin-top: 15px;
+            font-size: 0;
+        }
+        
+        /* Kartu Normal */
+        .data-column {
+            display: inline-block;
+            width: 31.33%;
+            min-width: 300px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 1%;
+            vertical-align: top;
+            box-sizing: border-box;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        
+        /* Gaya Kartu Jika Sudah Ditandai Selesai (Hijau Muda Cerah) */
+        .data-column.is-done {
+            background-color: #d1fae5 !important;
+            border-color: #10b981 !important;
+        }
+        .data-column.is-done .output-box {
+            background-color: #f0fdf4 !important;
+            border-color: #10b981 !important;
+        }
+        
+        .col-title {
+            font-weight: bold;
+            text-align: center;
+            padding: 8px;
+            color: #ffffff;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+        }
+        .title-global { background: #0f172a; }
+        .title-tunggal { background: #334155; }
+        
+        .output-box {
+            width: 100%;
+            height: 380px;
+            padding: 10px;
+            border: 2px solid #000000;
+            border-radius: 6px;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 14px;
+            font-weight: 800;
+            color: #000000;
+            background-color: #ffffff;
+            box-sizing: border-box;
+            resize: vertical;
+            line-height: 1.4;
+        }
+        .output-box:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .card-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .card-actions .btn {
+            flex: 1;
+            padding: 10px 5px;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        @media (min-width: 769px) {
+            .w-search { width: 63%; margin-right: 2%; }
+            .w-sort { width: 35%; }
+        }
+        @media (max-width: 768px) {
+            .data-column { width: 98%; margin: 1% 0; }
+            .btn { flex: 1 1 calc(50% - 10px); text-align: center; }
+            .w-search, .w-sort { width: 100%; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header-box">
-            <h2>✅ Aplikasi Perapihan Data Final</h2>
-            <p class="subtitle">Nomor urut otomatis dipisah, salin hanya isi data murni.</p>
-            
-            <textarea id="inputData" class="input-box" placeholder="Paste data WhatsApp di sini..."></textarea>
-            
-            <div class="controls" style="margin-top: 15px;">
-                <button onclick="processData()">✨ PROSES DATA SEKARANG</button>
-                <button class="btn-clear" onclick="clearAllData()">🗑️ Hapus Semua / Reset</button>
-            </div>
-        </div>
 
-        <div class="top-action-bar">
-            <h3>📋 Hasil Terkoreksi: <span id="dataCount">0</span> Data</h3>
-            <button class="btn-copy" onclick="copyAllData()">📋 Salin Semua Isi Data</button>
-        </div>
+<div class="container">
+    <div class="header">
+        <h1>❤️ ByDataKu Full Auto Detect</h1>
+        <p>🧠 Auto Deteksi Format Aktif (Checklist Ready)</p>
+    </div>
+    
+    <label for="inputData">Masukkan Semua Data Mentah:</label>
+    <textarea id="inputData" placeholder="Paste semua baris chat WhatsApp di sini..."></textarea>
 
-        <div id="outputContainer" class="results-container">
-            <div class="empty-state">Belum ada data.<br>Silakan paste di atas lalu klik PROSES.</div>
-        </div>
+    <div class="toolbar">
+        <button class="btn btn-blue" onclick="susunSemua()">⚙️ Susun Semua</button>
+        <button class="btn btn-green" onclick="salinSemuaMassal()">📋 Salin Semua Kolom</button>
+        <button class="btn btn-gray" onclick="downloadTXTMassal()">💾 Download TXT</button>
+        <button class="btn btn-orange" onclick="restoreData()">↩ Restore</button>
+        <button class="btn btn-red" onclick="hapusRiwayatTotal()">🗑️ Hapus Riwayat</button>
     </div>
 
-    <script>
-        let savedData = [];
-        const STORAGE_KEY = 'DataPerapihanEkspedisi_Final';
+    <div id="searchArea" class="search-area" style="display: none;">
+        <div class="filter-row">
+            <div class="filter-col w-search">
+                <label for="searchFilter">🔍 Live Pencarian Cepat:</label>
+                <input type="text" id="searchFilter" class="search-input" placeholder="Ketik nama orang atau nomor NIK untuk menyaring...">
+            </div>
+            <div class="filter-col w-sort">
+                <label for="sortFilter">🔀 Urutkan Barisan Data:</label>
+                <select id="sortFilter" class="search-input" onchange="eksekusiPengurutan()">
+                    <option value="default">Sesuai Urutan Input (Asli)</option>
+                    <option value="nama-az">Nama Lengkap (A - Z)</option>
+                    <option value="nik-asc">Nomor NIK (Terkecil → Terbesar)</option>
+                </select>
+            </div>
+        </div>
+        <label class="hide-done-wrapper">
+            <input type="checkbox" id="hideDoneCheck" onchange="saringKartuLaporan()"> 👁️ Sembunyikan data kartu yang sudah ditandai "Selesai"
+        </label>
+    </div>
 
-        window.onload = function() {
-            try {
-                const stored = localStorage.getItem(STORAGE_KEY);
-                if (stored) {
-                    savedData = JSON.parse(stored);
-                    if (savedData.length > 0) renderCards();
-                }
-            } catch(e) {}
-        };
+    <div id="wrapperHasil" class="columns-wrapper"></div>
+</div>
 
-        function processData() {
-            let container = document.getElementById('outputContainer');
-            let raw = document.getElementById('inputData').value;
+<script>
+    let backupData = { input: "", columns: [] };
+
+    window.onload = () => {
+        if (localStorage.getItem('savedInput')) {
+            document.getElementById('inputData').value = localStorage.getItem('savedInput');
+        }
+        if (localStorage.getItem('savedColumnsArray')) {
+            const savedArr = JSON.parse(localStorage.getItem('savedColumnsArray'));
+            buatElemenKolom(savedArr);
+        }
+        document.getElementById('searchFilter').addEventListener('input', saringKartuLaporan);
+    };
+
+    function simpanKeStorage() {
+        localStorage.setItem('savedInput', document.getElementById('inputData').value);
+        let currentColumns = [];
+        document.querySelectorAll('.output-box').forEach(box => {
+            const cardParent = box.parentElement;
+            currentColumns.push({
+                status: box.getAttribute('data-status'),
+                nama: box.getAttribute('data-nama'),
+                nik: box.getAttribute('data-nik'),
+                index: parseInt(box.getAttribute('data-index') || 0, 10),
+                done: cardParent.classList.contains('is-done'), // Simpan status checklistnya
+                text: box.value
+            });
+        });
+        localStorage.setItem('savedColumnsArray', JSON.stringify(currentColumns));
+    }
+
+    document.getElementById('inputData').addEventListener('input', simpanKeStorage);
+
+    function kurangiSatuBulan(dateStr) {
+        if (!dateStr) return "";
+        let parts = dateStr.split('-');
+        if (parts.length !== 3) return dateStr;
+        
+        let dayStr = parts[0]; 
+        let month = parseInt(parts[1], 10);
+        let year = parseInt(parts[2], 10);
+        
+        month = month - 1;
+        if (month === 0) {
+            month = 12;      
+            year = year - 1; 
+        }
+        
+        let monthStr = month < 10 ? '0' + month : month;
+        return `${dayStr}-${monthStr}-${year}`;
+    }
+
+    // PENYEMPURNAAN FILTER: Memfilter teks SEKALIGUS memfilter data checklist tersembunyi
+    function saringKartuLaporan() {
+        const kataKunci = document.getElementById('searchFilter').value.toLowerCase();
+        const harusSembunyiDone = document.getElementById('hideDoneCheck').checked;
+        const semuaKartu = document.querySelectorAll('.data-column');
+        
+        semuaKartu.forEach(kartu => {
+            const isiTeksKartu = kartu.querySelector('.output-box').value.toLowerCase();
+            const apakahKartuDone = kartu.classList.contains('is-done');
             
-            if (!raw || raw.trim() === "") {
-                alert("Harap masukkan data terlebih dahulu!");
-                return;
+            let lolosTeks = isiTeksKartu.includes(kataKunci);
+            let lolosDone = !(harusSembunyiDone && apakahKartuDone);
+            
+            if (lolosTeks && lolosDone) {
+                kartu.style.display = 'inline-block';
+            } else {
+                kartu.style.display = 'none';
+            }
+        });
+    }
+
+    function eksekusiPengurutan() {
+        simpanKeStorage();
+        const aturanSort = document.getElementById('sortFilter').value;
+        let dataArray = JSON.parse(localStorage.getItem('savedColumnsArray')) || [];
+        
+        if (aturanSort === 'nama-az') {
+            dataArray.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
+        } else if (aturanSort === 'nik-asc') {
+            dataArray.sort((a, b) => (a.nik || '').localeCompare(b.nik || ''));
+        } else if (aturanSort === 'default') {
+            dataArray.sort((a, b) => a.index - b.index);
+        }
+        
+        buatElemenKolom(dataArray);
+        saringKartuLaporan();
+    }
+
+    // FITUR BARU: Mengubah warna kartu selesai dan memperbarui memori
+    function toggleTandaiSelesai(btnElement) {
+        const kartuInduk = btnElement.parentElement.parentElement;
+        kartuInduk.classList.toggle('is-done');
+        
+        if (kartuInduk.classList.contains('is-done')) {
+            btnElement.innerText = '↩ Buka Tanda';
+            btnElement.className = 'btn btn-uncheck';
+        } else {
+            btnElement.innerText = '✔️ Selesai';
+            btnElement.className = 'btn btn-check';
+        }
+        
+        simpanKeStorage();
+        saringKartuLaporan(); // Update tampilan layar jika opsi sembunyikan aktif
+    }
+
+    function buatElemenKolom(dataArray) {
+        const wrapper = document.getElementById('wrapperHasil');
+        const searchArea = document.getElementById('searchArea');
+        wrapper.innerHTML = ''; 
+
+        if (dataArray.length > 0) {
+            searchArea.style.display = 'block';
+        } else {
+            searchArea.style.display = 'none';
+        }
+
+        dataArray.forEach((item, index) => {
+            const itemIndex = item.index !== undefined ? item.index : index;
+            const colNumber = index + 1;
+            
+            const divCol = document.createElement('div');
+            // Cek apakah data ini di memori berstatus done atau tidak
+            divCol.className = item.done ? 'data-column is-done' : 'data-column';
+            
+            let titleClass = 'title-tunggal';
+            let titleLabel = `KOLOM ${colNumber} (TUNGGAL)`;
+            if (item.status === '2' || item.status === '9') {
+                titleClass = 'title-global';
+                titleLabel = `KOLOM ${colNumber} (GLOBAL / SENSOR)`;
             }
 
-            raw = raw.replace(/[\u200B-\u200D\uFEFF\u200E\u200F]/g, '');
-            let lines = raw.split('\n');
-            let entries = [];
-            let currentEntry = null;
+            let textTombolDone = item.done ? '↩ Buka Tanda' : '✔️ Selesai';
+            let kelasTombolDone = item.done ? 'btn btn-uncheck' : 'btn btn-check';
 
-            for (let i = 0; i < lines.length; i++) {
-                let line = lines[i].trim();
-                let starIdx = line.indexOf('*');
-                if (starIdx > -1) {
-                    let nextChar = line.charAt(starIdx + 1);
-                    if (/[a-zA-Z]/.test(nextChar)) {
-                        line = line.substring(starIdx);
-                    }
+            divCol.innerHTML = `
+                <div class="col-title ${titleClass}">${titleLabel}</div>
+                <textarea class="output-box" data-status="${item.status}" data-nama="${item.nama || ''}" data-nik="${item.nik || ''}" data-index="${itemIndex}">${item.text}</textarea>
+                <div class="card-actions">
+                    <button class="btn btn-green" onclick="salinSatuKolom(this)">📋 Salin</button>
+                    <button class="btn btn-wa" onclick="kirimKeWA(this)">💬 WA</button>
+                    <button class="${kelasTombolDone}" onclick="toggleTandaiSelesai(this)">${textTombolDone}</button>
+                </div>
+            `;
+            wrapper.appendChild(divCol);
+        });
+
+        document.querySelectorAll('.output-box').forEach(box => {
+            box.addEventListener('input', simpanKeStorage);
+        });
+    }
+
+    function susunSemua() {
+        document.getElementById('searchFilter').value = '';
+        document.getElementById('sortFilter').value = 'default';
+        document.getElementById('hideDoneCheck').checked = false; // Reset centang sembunyikan
+        
+        const input = document.getElementById('inputData').value;
+        const lines = input.split('\n');
+        let rawProcessedArray = [];
+        let errorLines = [];
+        let counterIndex = 0;
+
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i];
+            if (!line.trim()) continue;
+
+            let cleanLine = line.replace(/^\[.*?\] .*?:\s*/, '').trim();
+            if (!cleanLine) continue;
+            
+            let data = {};
+            let cols = cleanLine.split('\t').map(c => c.trim()).filter(c => c !== '');
+            
+            if (cols.length >= 12) {
+                data.id1 = cols[1];
+                data.nik = cols[2];
+                data.nama = cols[3];
+                data.tglLahir = cols[4];
+                data.gender = (cols[5]?.toUpperCase() === 'L') ? 'PRIA' : (cols[5]?.toUpperCase() === 'P' ? 'WANITA' : cols[5]);
+                data.status = cols[6];
+                data.amount = parseInt(cols[7] || "0", 10).toLocaleString('id-ID');
+                data.company = cols[8];
+                data.endDate = kurangiSatuBulan(cols[10]); 
+                data.wilayah = `*${cols[11]}, ${cols[12]}, ${cols[13]}*`;
+            } else {
+                let match = cleanLine.match(/^(\d+)\s+(\d+)\s+(\d+)\s+(.*?)\s+(\d{2}-\d{2}-\d{4})\s*(L|P|l|p)\s*(\d+)\s+(\d+)\s+(.*?)\s+(\d{2}-\d{2}-\d{4})\s+(\d{2}-\d{2}-\d{4})\s+(.*?)(?:\s+success)?$/i);
+                
+                if (match) {
+                    data.id1 = match[2];
+                    data.nik = match[3];
+                    data.nama = match[4];
+                    data.tglLahir = match[5];
+                    data.gender = match[6].toUpperCase() === 'L' ? 'PRIA' : 'WANITA';
+                    data.status = match[7];
+                    data.amount = parseInt(match[8] || "0", 10).toLocaleString('id-ID');
+                    data.company = match[9];
+                    data.endDate = kurangiSatuBulan(match[11]); 
+                    let wilayahRaw = match[12];
+                    data.wilayah = wilayahRaw.includes('  ') ? `*${wilayahRaw.replace(/\s{2,}/g, ', ')}*` : `*${wilayahRaw}*`;
+                } else {
+                    errorLines.push(i + 1);
+                    continue; 
                 }
-
-                if (line.startsWith('*')) {
-                    if (!currentEntry) {
-                        currentEntry = { headers: [], body: [] };
-                    } else if (currentEntry.body.length > 0) {
-                        entries.push(currentEntry);
-                        currentEntry = { headers: [], body: [] };
-                    }
-                    currentEntry.headers.push(line);
-                } 
-                else if (line !== '') {
-                    if (line.match(/^\[\d{1,2}[\/\-]\d{1,2}/) || line.match(/^\d{1,2}[\/\-]\d{1,2}.*?-/)) continue;
-                    if (currentEntry) currentEntry.body.push(line);
-                } 
-                else {
-                    if (currentEntry && currentEntry.body.length > 0) currentEntry.body.push('');
-                }
             }
 
-            if (currentEntry && (currentEntry.headers.length > 0 || currentEntry.body.length > 0)) {
-                entries.push(currentEntry);
+            let blockText = '';
+            if (data.status === '2' || data.status === '9') {
+                blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nSENSOR JMO OK\nGLOBAL ${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
+            } else if (data.status === '1') {
+                blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nTUNGGAL\n${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
+            } else {
+                blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nSTATUS_${data.status}\n${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
             }
 
-            let newProcessed = entries.map(entry => {
-                let headerParts = [];
-                entry.headers.forEach(h => {
-                    let parts = h.replace(/^\*/, '').split(',');
-                    parts.forEach(p => { if (p.trim()) headerParts.push(p.trim()); });
-                });
-                let finalHeader = '*' + headerParts.join(', ');
-                while(entry.body.length > 0 && entry.body[entry.body.length-1] === '') entry.body.pop();
-                let bodyText = entry.body.join('\n').trim();
-                bodyText = bodyText.replace(/^([^,]+),\s*\d{2}-\d{2}-(\d{4})$/gm, '$1, $2');
-                bodyText = bodyText.replace(/\n{3,}/g, '\n\n');
-                return finalHeader + '\n\n' + bodyText; 
-            });
-
-            savedData = savedData.concat(newProcessed);
-            savedData.sort((a, b) => {
-                let cleanA = a.replace('*', '').split('\n')[0].trim();
-                let cleanB = b.replace('*', '').split('\n')[0].trim();
-                return cleanA.localeCompare(cleanB);
-            });
-
-            saveToStorage();
-            renderCards();
-            document.getElementById('inputData').value = ''; 
-        }
-
-        function renderCards() {
-            const container = document.getElementById('outputContainer');
-            document.getElementById('dataCount').innerText = savedData.length;
-            container.innerHTML = '';
-
-            savedData.forEach((content, index) => {
-                const card = document.createElement('div');
-                card.className = 'result-card';
-                card.innerHTML = `
-                    <div class="card-label">Data Ke-${index + 1}</div>
-                    <textarea oninput="handleEdit(${index}, this)">${content}</textarea>
-                    <div class="card-actions">
-                        <button class="btn-copy" onclick="copySingleData(${index}, this)">Salin Data Ini</button>
-                        <button class="btn-clear" onclick="deleteSingleData(${index})">Hapus</button>
-                    </div>
-                `;
-                container.appendChild(card);
+            rawProcessedArray.push({
+                index: counterIndex++, 
+                status: data.status,
+                nama: data.nama,      
+                nik: data.nik,        
+                done: false, // Default awal saat disusun belum diselesaikan
+                text: blockText
             });
         }
 
-        function handleEdit(index, textareaElement) {
-            savedData[index] = textareaElement.value;
-            saveToStorage();
+        if (errorLines.length > 0) {
+            alert(`⚠️ Perhatian: Baris data ke-${errorLines.join(', ')} gagal diproses karena format tidak lengkap.`);
         }
 
-        function deleteSingleData(index) {
-            if(confirm("Hapus data ini?")) {
-                savedData.splice(index, 1);
-                saveToStorage();
-                renderCards();
-            }
+        if (rawProcessedArray.length === 0) {
+            alert("⚠️ Tidak ada data baris laporan yang berhasil diproses!");
+            return;
         }
 
-        async function copySingleData(index, btn) {
-            const textarea = btn.parentElement.previousElementSibling;
-            const text = textarea.value;
+        buatElemenKolom(rawProcessedArray);
+        simpanKeStorage();
+    }
 
-            try {
-                await navigator.clipboard.writeText(text);
-            } catch (err) {
-                const temp = document.createElement('textarea');
-                temp.value = text;
-                temp.setAttribute('readonly', '');
-                temp.style.position = 'fixed';
-                temp.style.top = '-9999px';
-                temp.style.opacity = '0';
-                document.body.appendChild(temp);
+    function salinSatuKolom(btnElement) {
+        const txtArea = btnElement.parentElement.parentElement.querySelector('.output-box');
+        if (!txtArea.value) return;
+        
+        navigator.clipboard.writeText(txtArea.value).then(() => {
+            const textLama = btnElement.innerText;
+            btnElement.innerText = '✔️';
+            setTimeout(() => { btnElement.innerText = textLama; }, 1500);
+        }).catch(err => {
+            txtArea.select();
+            document.execCommand('copy');
+            const textLama = btnElement.innerText;
+            btnElement.innerText = '✔️';
+            setTimeout(() => { btnElement.innerText = textLama; }, 1500);
+        });
+    }
 
-                const isi = document.activeElement;
-                temp.select();
-                temp.setSelectionRange(0, 999999);
+    function kirimKeWA(btnElement) {
+        const txtArea = btnElement.parentElement.parentElement.querySelector('.output-box');
+        if (!txtArea.value) return;
+        const textEncoded = encodeURIComponent(txtArea.value);
+        window.open(`https://api.whatsapp.com/send?text=${textEncoded}`, '_blank');
+    }
 
-                document.execCommand('copy');
-                document.body.removeChild(temp);
+    function salinSemuaMassal() {
+        let gabunganSeluruhnya = [];
+        document.querySelectorAll('.output-box').forEach((box, i) => {
+            gabunganSeluruhnya.push(`=== KOLOM ${i+1} ===\n${box.value}`);
+        });
 
-                if (isi) isi.blur();
-            }
+        if (gabunganSeluruhnya.length === 0) return alert("Kosong! Selesaikan penyusunan terlebih dahulu.");
+        navigator.clipboard.writeText(gabunganSeluruhnya.join('\n\n\n')).then(() => {
+            alert("Seluruh isi kotak Kolom 1 sampai akhir telah berhasil disalin massal!");
+        });
+    }
 
-            btn.blur();
-            btn.innerText = "Tersalin!";
-            setTimeout(() => { btn.innerText = "Salin Data Ini"; }, 1500);
+    function downloadTXTMassal() {
+        let gabunganSeluruhnya = [];
+        document.querySelectorAll('.output-box').forEach((box, i) => {
+            gabunganSeluruhnya.push(`=== KOLOM ${i+1} ===\n${box.value}`);
+        });
+
+        if (gabunganSeluruhnya.length === 0) return alert("Tidak ada data untuk diunduh!");
+
+        const blob = new Blob([gabunganSeluruhnya.join('\n\n\n\n')], { type: "text/plain" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        
+        const d = new Date();
+        link.download = `Laporan_Per_Kolom_${d.getDate()}-${d.getMonth()+1}.txt`;
+        link.click();
+    }
+
+    function hapusRiwayatTotal() {
+        backupData.input = document.getElementById('inputData').value;
+        backupData.columns = [];
+        document.querySelectorAll('.output-box').forEach(box => {
+            const cardParent = box.parentElement;
+            backupData.columns.push({ status: box.getAttribute('data-status'), nama: box.getAttribute('data-nama'), nik: box.getAttribute('data-nik'), index: box.getAttribute('data-index'), done: cardParent.classList.contains('is-done'), text: box.value });
+        });
+
+        document.getElementById('inputData').value = '';
+        document.getElementById('searchFilter').value = '';
+        document.getElementById('sortFilter').value = 'default';
+        document.getElementById('hideDoneCheck').checked = false;
+        document.getElementById('searchArea').style.display = 'none';
+        document.getElementById('wrapperHasil').innerHTML = '';
+        localStorage.clear();
+    }
+
+    function restoreData() {
+        if (!backupData.input && backupData.columns.length === 0) {
+            alert("Tidak ada riwayat data yang bisa dikembalikan!");
+            return;
         }
+        document.getElementById('inputData').value = backupData.input;
+        buatElemenKolom(backupData.columns);
+        simpanKeStorage();
+    }
+</script>
 
-        async function copyAllData() {
-            if(savedData.length === 0) return alert("Kosong!");
-
-            const allText = savedData.join('\n\n\n');
-
-            try {
-                await navigator.clipboard.writeText(allText);
-            } catch (err) {
-                const temp = document.createElement('textarea');
-                temp.value = allText;
-                temp.setAttribute('readonly', '');
-                temp.style.position = 'fixed';
-                temp.style.top = '-9999px';
-                temp.style.opacity = '0';
-                document.body.appendChild(temp);
-
-                temp.select();
-                temp.setSelectionRange(0, 999999);
-
-                document.execCommand('copy');
-                document.body.removeChild(temp);
-            }
-
-            if (document.activeElement) {
-                document.activeElement.blur();
-            }
-
-            alert("✅ Seluruh data murni (tanpa nomor) berhasil disalin!");
-        }
-
-        function clearAllData() {
-            if(confirm("Hapus semua data?")) {
-                savedData = [];
-                localStorage.removeItem(STORAGE_KEY);
-                renderCards();
-            }
-        }
-
-        function saveToStorage() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
-        }
-    </script>
 </body>
 </html>
