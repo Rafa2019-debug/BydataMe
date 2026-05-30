@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ByDataKu Full Auto Detect - Checklist System v10</title>
+    <title>ByDataKu Full Auto Detect - Smart Status v11</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -109,7 +109,6 @@
         .btn-wa { background: var(--whatsapp); }
         .btn-wa:hover { background: var(--whatsapp-hover); }
         
-        /* Tombol Tandai Selesai Warna Abu Tua dan Kuning */
         .btn-check { background: #4b5563; } 
         .btn-uncheck { background: var(--warning); }
 
@@ -148,7 +147,6 @@
             border-color: var(--primary);
         }
         
-        /* Opsi Sembunyikan Data Selesai */
         .hide-done-wrapper {
             margin-top: 10px;
             display: block;
@@ -171,7 +169,6 @@
             font-size: 0;
         }
         
-        /* Kartu Normal */
         .data-column {
             display: inline-block;
             width: 31.33%;
@@ -188,7 +185,6 @@
             transition: background-color 0.3s, border-color 0.3s;
         }
         
-        /* Gaya Kartu Jika Sudah Ditandai Selesai (Hijau Muda Cerah) */
         .data-column.is-done {
             background-color: #d1fae5 !important;
             border-color: #10b981 !important;
@@ -219,7 +215,7 @@
             border-radius: 6px;
             font-family: Arial, Helvetica, sans-serif;
             font-size: 14px;
-            font-weight: 800;
+            font-weight: 800; /* Tebal Hitam Pekat */
             color: #000000;
             background-color: #ffffff;
             box-sizing: border-box;
@@ -259,7 +255,7 @@
 <div class="container">
     <div class="header">
         <h1>❤️ ByDataKu Full Auto Detect</h1>
-        <p>🧠 Auto Deteksi Format Aktif (Checklist Ready)</p>
+        <p>🧠 Auto Deteksi Format Aktif (Range Status 1-20 Updated)</p>
     </div>
     
     <label for="inputData">Masukkan Semua Data Mentah:</label>
@@ -320,7 +316,7 @@
                 nama: box.getAttribute('data-nama'),
                 nik: box.getAttribute('data-nik'),
                 index: parseInt(box.getAttribute('data-index') || 0, 10),
-                done: cardParent.classList.contains('is-done'), // Simpan status checklistnya
+                done: cardParent.classList.contains('is-done'),
                 text: box.value
             });
         });
@@ -348,7 +344,6 @@
         return `${dayStr}-${monthStr}-${year}`;
     }
 
-    // PENYEMPURNAAN FILTER: Memfilter teks SEKALIGUS memfilter data checklist tersembunyi
     function saringKartuLaporan() {
         const kataKunci = document.getElementById('searchFilter').value.toLowerCase();
         const harusSembunyiDone = document.getElementById('hideDoneCheck').checked;
@@ -386,7 +381,6 @@
         saringKartuLaporan();
     }
 
-    // FITUR BARU: Mengubah warna kartu selesai dan memperbarui memori
     function toggleTandaiSelesai(btnElement) {
         const kartuInduk = btnElement.parentElement.parentElement;
         kartuInduk.classList.toggle('is-done');
@@ -400,7 +394,7 @@
         }
         
         simpanKeStorage();
-        saringKartuLaporan(); // Update tampilan layar jika opsi sembunyikan aktif
+        saringKartuLaporan();
     }
 
     function buatElemenKolom(dataArray) {
@@ -419,12 +413,14 @@
             const colNumber = index + 1;
             
             const divCol = document.createElement('div');
-            // Cek apakah data ini di memori berstatus done atau tidak
             divCol.className = item.done ? 'data-column is-done' : 'data-column';
             
+            // PERBAIKAN LOGIKA STATUS PADA JUDUL KARTU
             let titleClass = 'title-tunggal';
             let titleLabel = `KOLOM ${colNumber} (TUNGGAL)`;
-            if (item.status === '2' || item.status === '9') {
+            
+            let statusCode = parseInt(item.status, 10);
+            if (statusCode >= 2 && statusCode <= 20) {
                 titleClass = 'title-global';
                 titleLabel = `KOLOM ${colNumber} (GLOBAL / SENSOR)`;
             }
@@ -452,7 +448,7 @@
     function susunSemua() {
         document.getElementById('searchFilter').value = '';
         document.getElementById('sortFilter').value = 'default';
-        document.getElementById('hideDoneCheck').checked = false; // Reset centang sembunyikan
+        document.getElementById('hideDoneCheck').checked = false;
         
         const input = document.getElementById('inputData').value;
         const lines = input.split('\n');
@@ -502,10 +498,13 @@
                 }
             }
 
+            // PERBAIKAN LOGIKA STATUS PADA FORMAT TEKS HASIL
             let blockText = '';
-            if (data.status === '2' || data.status === '9') {
+            let statusCode = parseInt(data.status, 10);
+            
+            if (statusCode >= 2 && statusCode <= 20) {
                 blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nSENSOR JMO OK\nGLOBAL ${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
-            } else if (data.status === '1') {
+            } else if (statusCode === 1) {
                 blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nTUNGGAL\n${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
             } else {
                 blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nSTATUS_${data.status}\n${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
@@ -516,7 +515,7 @@
                 status: data.status,
                 nama: data.nama,      
                 nik: data.nik,        
-                done: false, // Default awal saat disusun belum diselesaikan
+                done: false, 
                 text: blockText
             });
         }
