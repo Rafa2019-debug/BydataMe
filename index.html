@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ByDataKu Full Auto Detect - Smart Status v11</title>
+    <title>ByDataKu Full Auto Detect - Anti Keyboard Pop-up v16</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -11,7 +11,6 @@
             --danger: #dc2626;
             --warning: #d97706;
             --whatsapp: #25d366;
-            --whatsapp-hover: #20ba5a;
             --dark: #000000;
             --light: #f1f5f9;
             --border: #000000;
@@ -102,15 +101,32 @@
         .btn:hover { opacity: 0.9; box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
         
         .btn-blue { background: var(--primary); }
+        .btn-cyan { background: #0284c7; }
         .btn-green { background: var(--success); }
         .btn-gray { background: #475569; }
         .btn-orange { background: var(--warning); }
         .btn-red { background: var(--danger); }
-        .btn-wa { background: var(--whatsapp); }
-        .btn-wa:hover { background: var(--whatsapp-hover); }
         
         .btn-check { background: #4b5563; } 
         .btn-uncheck { background: var(--warning); }
+
+        #toastNotif {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0f172a;
+            color: #ffffff;
+            padding: 12px 25px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+            z-index: 9999;
+            border: 2px solid var(--whatsapp);
+            text-align: center;
+        }
 
         .search-area {
             background: #f8fafc;
@@ -215,7 +231,7 @@
             border-radius: 6px;
             font-family: Arial, Helvetica, sans-serif;
             font-size: 14px;
-            font-weight: 800; /* Tebal Hitam Pekat */
+            font-weight: 800;
             color: #000000;
             background-color: #ffffff;
             box-sizing: border-box;
@@ -239,6 +255,23 @@
             text-align: center;
         }
 
+        .mass-check-row {
+            margin-bottom: 8px; 
+            font-weight: bold; 
+            color: #000000; 
+            font-size: 13px;
+            background: #f1f5f9;
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+        }
+        .mass-check-row input {
+            transform: scale(1.3);
+            margin-right: 8px;
+            vertical-align: middle;
+            cursor: pointer;
+        }
+
         @media (min-width: 769px) {
             .w-search { width: 63%; margin-right: 2%; }
             .w-sort { width: 35%; }
@@ -252,18 +285,23 @@
 </head>
 <body>
 
+<div id="toastNotif"></div>
+
 <div class="container">
     <div class="header">
         <h1>❤️ ByDataKu Full Auto Detect</h1>
-        <p>🧠 Auto Deteksi Format Aktif (Range Status 1-20 Updated)</p>
+        <p>🧠 Auto Deteksi Format Aktif (Salin Siluman Anti Keyboard Pop-up)</p>
     </div>
     
     <label for="inputData">Masukkan Semua Data Mentah:</label>
-    <textarea id="inputData" placeholder="Paste semua baris chat WhatsApp di sini..."></textarea>
+    <textarea id="inputData" placeholder="Paste baris chat WhatsApp di sini..."></textarea>
 
     <div class="toolbar">
         <button class="btn btn-blue" onclick="susunSemua()">⚙️ Susun Semua</button>
-        <button class="btn btn-green" onclick="salinSemuaMassal()">📋 Salin Semua Kolom</button>
+        <button class="btn btn-cyan" onclick="tambahKeAntrean()">➕ Tambah Data</button>
+        <button class="btn btn-gray" onclick="kosongkanInput()">✖️ Kosongkan Input</button>
+        <button class="btn btn-orange" style="font-weight:800; background:#d97706; box-shadow:0 0 10px rgba(217,119,6,0.5);" onclick="salinAntreanSelanjutnya()">📋 Salin Antrean</button>
+        <button class="btn btn-green" onclick="salinSemuaMassal()">📋 Salin Semua</button>
         <button class="btn btn-gray" onclick="downloadTXTMassal()">💾 Download TXT</button>
         <button class="btn btn-orange" onclick="restoreData()">↩ Restore</button>
         <button class="btn btn-red" onclick="hapusRiwayatTotal()">🗑️ Hapus Riwayat</button>
@@ -311,12 +349,14 @@
         let currentColumns = [];
         document.querySelectorAll('.output-box').forEach(box => {
             const cardParent = box.parentElement;
+            const massCheck = cardParent.querySelector('.send-queue-check');
             currentColumns.push({
                 status: box.getAttribute('data-status'),
                 nama: box.getAttribute('data-nama'),
                 nik: box.getAttribute('data-nik'),
                 index: parseInt(box.getAttribute('data-index') || 0, 10),
                 done: cardParent.classList.contains('is-done'),
+                selected: massCheck ? massCheck.checked : false,
                 text: box.value
             });
         });
@@ -342,6 +382,139 @@
         
         let monthStr = month < 10 ? '0' + month : month;
         return `${dayStr}-${monthStr}-${year}`;
+    }
+
+    function prosesTextMentah(inputString, indexMulai) {
+        const lines = inputString.split('\n');
+        let rawProcessedArray = [];
+        let errorLines = [];
+        let counterIndex = indexMulai;
+
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i];
+            if (!line.trim()) continue;
+
+            let cleanLine = line.replace(/^\[.*?\] .*?:\s*/, '').trim();
+            if (!cleanLine) continue;
+            
+            let data = {};
+            let cols = cleanLine.split('\t').map(c => c.trim()).filter(c => c !== '');
+            
+            if (cols.length >= 12) {
+                data.id1 = cols[1];
+                data.nik = cols[2];
+                data.nama = cols[3];
+                data.tglLahir = cols[4];
+                data.gender = (cols[5]?.toUpperCase() === 'L') ? 'PRIA' : (cols[5]?.toUpperCase() === 'P' ? 'WANITA' : cols[5]);
+                data.status = cols[6];
+                data.amount = parseInt(cols[7] || "0", 10).toLocaleString('id-ID');
+                data.company = cols[8];
+                data.endDate = kurangiSatuBulan(cols[10]); 
+                data.wilayah = `*${cols[11]}, ${cols[12]}, ${cols[13]}*`;
+            } else {
+                let match = cleanLine.match(/^(\d+)\s+(\d+)\s+(\d+)\s+(.*?)\s+(\d{2}-\d{2}-\d{4})\s*(L|P|l|p)\s*(\d+)\s+(\d+)\s+(.*?)\s+(\d{2}-\d{2}-\d{4})\s+(\d{2}-\d{2}-\d{4})\s+(.*?)(?:\s+success)?$/i);
+                
+                if (match) {
+                    data.id1 = match[2];
+                    data.nik = match[3];
+                    data.nama = match[4];
+                    data.tglLahir = match[5];
+                    data.gender = match[6].toUpperCase() === 'L' ? 'PRIA' : 'WANITA';
+                    data.status = match[7];
+                    data.amount = parseInt(match[8] || "0", 10).toLocaleString('id-ID');
+                    data.company = match[9];
+                    data.endDate = kurangiSatuBulan(match[11]); 
+                    let wilayahRaw = match[12];
+                    data.wilayah = wilayahRaw.includes('  ') ? `*${wilayahRaw.replace(/\s{2,}/g, ', ')}*` : `*${wilayahRaw}*`;
+                } else {
+                    errorLines.push(i + 1);
+                    continue; 
+                }
+            }
+
+            let blockText = '';
+            let statusCode = parseInt(data.status, 10);
+            
+            if (statusCode >= 2 && statusCode <= 20) {
+                blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nSENSOR JMO OK\nGLOBAL ${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
+            } else if (statusCode === 1) {
+                blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nTUNGGAL\n${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
+            } else {
+                blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nSTATUS_${data.status}\n${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
+            }
+
+            rawProcessedArray.push({
+                index: counterIndex++, 
+                status: data.status,
+                nama: data.nama,      
+                nik: data.nik,        
+                done: false, 
+                selected: true, 
+                text: blockText
+            });
+        }
+
+        if (errorLines.length > 0) {
+            alert(`⚠️ Perhatian: Baris data ke-${errorLines.join(', ')} gagal diproses karena format tidak lengkap.`);
+        }
+        
+        return rawProcessedArray;
+    }
+
+    function susunSemua() {
+        document.getElementById('searchFilter').value = '';
+        document.getElementById('sortFilter').value = 'default';
+        document.getElementById('hideDoneCheck').checked = false;
+        
+        const input = document.getElementById('inputData').value;
+        const arrayBaru = prosesTextMentah(input, 0);
+
+        if (arrayBaru.length === 0) {
+            alert("⚠️ Tidak ada data baris laporan yang berhasil diproses!");
+            return;
+        }
+
+        buatElemenKolom(arrayBaru);
+        simpanKeStorage();
+    }
+
+    function tambahKeAntrean() {
+        const input = document.getElementById('inputData').value;
+        if (!input.trim()) {
+            alert("⚠️ Kotak input kosong! Silakan tempelkan data baru terlebih dahulu.");
+            return;
+        }
+
+        simpanKeStorage();
+
+        let dataLamaArray = JSON.parse(localStorage.getItem('savedColumnsArray')) || [];
+        
+        let indexTertinggi = -1;
+        dataLamaArray.forEach(item => {
+            if (item.index > indexTertinggi) indexTertinggi = item.index;
+        });
+
+        const arrayTambahan = prosesTextMentah(input, indexTertinggi + 1);
+
+        if (arrayTambahan.length === 0) {
+            alert("⚠️ Tidak ada data baris laporan tambahan yang berhasil diproses!");
+            return;
+        }
+
+        const gabunganArray = dataLamaArray.concat(arrayTambahan);
+
+        buatElemenKolom(gabunganArray);
+        document.getElementById('inputData').value = '';
+        
+        simpanKeStorage();
+        eksekusiPengurutan();
+        
+        tampilkanToast(`✔️ ${arrayTambahan.length} Data baru berhasil ditambahkan ke antrean bawah!`, "#0284c7");
+    }
+
+    function kosongkanInput() {
+        document.getElementById('inputData').value = '';
+        simpanKeStorage();
     }
 
     function saringKartuLaporan() {
@@ -410,12 +583,11 @@
 
         dataArray.forEach((item, index) => {
             const itemIndex = item.index !== undefined ? item.index : index;
-            const colNumber = index + 1;
+            const colNumber = itemIndex + 1; 
             
             const divCol = document.createElement('div');
             divCol.className = item.done ? 'data-column is-done' : 'data-column';
             
-            // PERBAIKAN LOGIKA STATUS PADA JUDUL KARTU
             let titleClass = 'title-tunggal';
             let titleLabel = `KOLOM ${colNumber} (TUNGGAL)`;
             
@@ -427,13 +599,16 @@
 
             let textTombolDone = item.done ? '↩ Buka Tanda' : '✔️ Selesai';
             let kelasTombolDone = item.done ? 'btn btn-uncheck' : 'btn btn-check';
+            let isChecked = item.selected ? 'checked' : '';
 
             divCol.innerHTML = `
                 <div class="col-title ${titleClass}">${titleLabel}</div>
+                <div class="mass-check-row">
+                    <input type="checkbox" class="send-queue-check" ${isChecked} onchange="simpanKeStorage()"> 📌 Pilih Masuk Antrean
+                </div>
                 <textarea class="output-box" data-status="${item.status}" data-nama="${item.nama || ''}" data-nik="${item.nik || ''}" data-index="${itemIndex}">${item.text}</textarea>
                 <div class="card-actions">
                     <button class="btn btn-green" onclick="salinSatuKolom(this)">📋 Salin</button>
-                    <button class="btn btn-wa" onclick="kirimKeWA(this)">💬 WA</button>
                     <button class="${kelasTombolDone}" onclick="toggleTandaiSelesai(this)">${textTombolDone}</button>
                 </div>
             `;
@@ -445,116 +620,94 @@
         });
     }
 
-    function susunSemua() {
-        document.getElementById('searchFilter').value = '';
-        document.getElementById('sortFilter').value = 'default';
-        document.getElementById('hideDoneCheck').checked = false;
+    /* ========================================================
+       FITUR BARU v16: MESIN SALIN SILUMAN ANTI-KEYBOARD POP-UP 
+       ======================================================== */
+    function salinTeksAman(text, onSuccess, onFail) {
+        // Coba jalur modern terlebih dahulu (jika HP mendukung/HTTPS)
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(onSuccess).catch(() => eksekusiSalinSiluman(text, onSuccess, onFail));
+        } else {
+            // Langsung eksekusi jalur siluman jika jalur modern tidak tersedia
+            eksekusiSalinSiluman(text, onSuccess, onFail);
+        }
+    }
+
+    function eksekusiSalinSiluman(text, onSuccess, onFail) {
+        // 1. Buat kotak teks gaib
+        const dummy = document.createElement('textarea');
+        dummy.value = text;
         
-        const input = document.getElementById('inputData').value;
-        const lines = input.split('\n');
-        let rawProcessedArray = [];
-        let errorLines = [];
-        let counterIndex = 0;
-
-        for (let i = 0; i < lines.length; i++) {
-            let line = lines[i];
-            if (!line.trim()) continue;
-
-            let cleanLine = line.replace(/^\[.*?\] .*?:\s*/, '').trim();
-            if (!cleanLine) continue;
-            
-            let data = {};
-            let cols = cleanLine.split('\t').map(c => c.trim()).filter(c => c !== '');
-            
-            if (cols.length >= 12) {
-                data.id1 = cols[1];
-                data.nik = cols[2];
-                data.nama = cols[3];
-                data.tglLahir = cols[4];
-                data.gender = (cols[5]?.toUpperCase() === 'L') ? 'PRIA' : (cols[5]?.toUpperCase() === 'P' ? 'WANITA' : cols[5]);
-                data.status = cols[6];
-                data.amount = parseInt(cols[7] || "0", 10).toLocaleString('id-ID');
-                data.company = cols[8];
-                data.endDate = kurangiSatuBulan(cols[10]); 
-                data.wilayah = `*${cols[11]}, ${cols[12]}, ${cols[13]}*`;
-            } else {
-                let match = cleanLine.match(/^(\d+)\s+(\d+)\s+(\d+)\s+(.*?)\s+(\d{2}-\d{2}-\d{4})\s*(L|P|l|p)\s*(\d+)\s+(\d+)\s+(.*?)\s+(\d{2}-\d{2}-\d{4})\s+(\d{2}-\d{2}-\d{4})\s+(.*?)(?:\s+success)?$/i);
-                
-                if (match) {
-                    data.id1 = match[2];
-                    data.nik = match[3];
-                    data.nama = match[4];
-                    data.tglLahir = match[5];
-                    data.gender = match[6].toUpperCase() === 'L' ? 'PRIA' : 'WANITA';
-                    data.status = match[7];
-                    data.amount = parseInt(match[8] || "0", 10).toLocaleString('id-ID');
-                    data.company = match[9];
-                    data.endDate = kurangiSatuBulan(match[11]); 
-                    let wilayahRaw = match[12];
-                    data.wilayah = wilayahRaw.includes('  ') ? `*${wilayahRaw.replace(/\s{2,}/g, ', ')}*` : `*${wilayahRaw}*`;
-                } else {
-                    errorLines.push(i + 1);
-                    continue; 
-                }
-            }
-
-            // PERBAIKAN LOGIKA STATUS PADA FORMAT TEKS HASIL
-            let blockText = '';
-            let statusCode = parseInt(data.status, 10);
-            
-            if (statusCode >= 2 && statusCode <= 20) {
-                blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nSENSOR JMO OK\nGLOBAL ${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
-            } else if (statusCode === 1) {
-                blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nTUNGGAL\n${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
-            } else {
-                blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nSTATUS_${data.status}\n${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
-            }
-
-            rawProcessedArray.push({
-                index: counterIndex++, 
-                status: data.status,
-                nama: data.nama,      
-                nik: data.nik,        
-                done: false, 
-                text: blockText
-            });
+        // 2. KUNCI UTAMA: Beri status 'readonly' agar HP tidak menarik keyboard saat diseleksi
+        dummy.setAttribute('readonly', ''); 
+        
+        // 3. Sembunyikan jauh dari layar
+        dummy.style.position = 'absolute';
+        dummy.style.left = '-9999px';
+        
+        document.body.appendChild(dummy);
+        
+        try {
+            // 4. Seleksi dan copy dari kotak gaib
+            dummy.select();
+            dummy.setSelectionRange(0, 99999); // Kompatibilitas ekstra untuk iPhone/iOS Safari
+            document.execCommand('copy');
+            document.body.removeChild(dummy); // Hapus jejak
+            if (onSuccess) onSuccess();
+        } catch (err) {
+            document.body.removeChild(dummy);
+            if (onFail) onFail();
         }
+    }
+    // ========================================================
 
-        if (errorLines.length > 0) {
-            alert(`⚠️ Perhatian: Baris data ke-${errorLines.join(', ')} gagal diproses karena format tidak lengkap.`);
-        }
-
-        if (rawProcessedArray.length === 0) {
-            alert("⚠️ Tidak ada data baris laporan yang berhasil diproses!");
+    function salinAntreanSelanjutnya() {
+        const semuaAntrean = document.querySelectorAll('.send-queue-check:checked');
+        
+        if (semuaAntrean.length === 0) {
+            tampilkanToast("⚠️ Antrean habis atau tidak ada data yang dicentang!", "#dc2626");
             return;
         }
 
-        buatElemenKolom(rawProcessedArray);
-        simpanKeStorage();
+        const checkTeratas = semuaAntrean[0];
+        const kartuInduk = checkTeratas.closest('.data-column');
+        const txtArea = kartuInduk.querySelector('.output-box');
+        const namaOrang = txtArea.getAttribute('data-nama');
+
+        if (!txtArea.value) return;
+
+        // Menggunakan mesin salin siluman baru
+        salinTeksAman(txtArea.value, () => {
+            tampilkanToast(`✔️ Data milik *${namaOrang}* berhasil disalin! Silakan Paste di WhatsApp.`, "#16a34a");
+            
+            checkTeratas.checked = false;
+            kartuInduk.classList.add('is-done');
+            
+            const btnDone = kartuInduk.querySelector('.card-actions button:nth-child(2)');
+            if (btnDone) {
+                btnDone.innerText = '↩ Buka Tanda';
+                btnDone.className = 'btn btn-uncheck';
+            }
+
+            simpanKeStorage();
+            saringKartuLaporan(); 
+        }, () => {
+            alert("Sistem HP Anda menolak akses salin otomatis.");
+        });
     }
 
     function salinSatuKolom(btnElement) {
         const txtArea = btnElement.parentElement.parentElement.querySelector('.output-box');
         if (!txtArea.value) return;
         
-        navigator.clipboard.writeText(txtArea.value).then(() => {
+        // Menggunakan mesin salin siluman baru
+        salinTeksAman(txtArea.value, () => {
             const textLama = btnElement.innerText;
-            btnElement.innerText = '✔️';
+            btnElement.innerText = '✔️ Tersalin';
             setTimeout(() => { btnElement.innerText = textLama; }, 1500);
-        }).catch(err => {
-            txtArea.select();
-            document.execCommand('copy');
-            const textLama = btnElement.innerText;
-            btnElement.innerText = '✔️';
-            setTimeout(() => { btnElement.innerText = textLama; }, 1500);
+        }, () => {
+            alert("Gagal menyalin teks.");
         });
-    }
-
-    function kirimKeWA(btnElement) {
-        const txtArea = btnElement.parentElement.parentElement.querySelector('.output-box');
-        if (!txtArea.value) return;
-        const textEncoded = encodeURIComponent(txtArea.value);
-        window.open(`https://api.whatsapp.com/send?text=${textEncoded}`, '_blank');
     }
 
     function salinSemuaMassal() {
@@ -564,9 +717,21 @@
         });
 
         if (gabunganSeluruhnya.length === 0) return alert("Kosong! Selesaikan penyusunan terlebih dahulu.");
-        navigator.clipboard.writeText(gabunganSeluruhnya.join('\n\n\n')).then(() => {
+        
+        // Menggunakan mesin salin siluman baru
+        salinTeksAman(gabunganSeluruhnya.join('\n\n\n'), () => {
             alert("Seluruh isi kotak Kolom 1 sampai akhir telah berhasil disalin massal!");
+        }, () => {
+            alert("Gagal menyalin data massal.");
         });
+    }
+
+    function tampilkanToast(pesan, warnaSamping) {
+        const toast = document.getElementById('toastNotif');
+        toast.innerText = pesan;
+        toast.style.borderColor = warnaSamping;
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 3500);
     }
 
     function downloadTXTMassal() {
