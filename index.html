@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ByDataKu Full Auto Detect - Anti Keyboard Pop-up v16</title>
+    <title>ByDataKu Full Auto Detect - Multi-Format Vertical v17</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -290,7 +290,7 @@
 <div class="container">
     <div class="header">
         <h1>❤️ ByDataKu Full Auto Detect</h1>
-        <p>🧠 Auto Deteksi Format Aktif (Salin Siluman Anti Keyboard Pop-up)</p>
+        <p>🧠 Auto Deteksi Format Aktif (Dukung Multi-Format Baris & Vertikal)</p>
     </div>
     
     <label for="inputData">Masukkan Semua Data Mentah:</label>
@@ -385,10 +385,62 @@
     }
 
     function prosesTextMentah(inputString, indexMulai) {
-        const lines = inputString.split('\n');
         let rawProcessedArray = [];
         let errorLines = [];
         let counterIndex = indexMulai;
+
+        // 1. MESIN PENDETEKSI FORMAT BARU (Blok Vertikal)
+        // Menangkap area: Kabupaten hingga Nominal Saldo
+        const regexBlok = /(?:\[.*?\]\s*.*?:)?\s*Kabupaten:\s*(.+?)\s*\nKecamatan:\s*(.+?)\s*\nKelurahan:\s*(.+?)\s*\n+(\d{16})\s*\n(.+?)\s*\n(.*?)\s*\|\s*(\d{2}-\d{2}-\d{4})\s*\nJUMLAH KPJ:\s*(\d+)\s*\n(\d+)\s*\n(.+?)\s*\n(\d{2}-\d{2}-\d{4})\s*\nTOTAL SALDO\s*:\s*Rp\s*([\d\.]+)(?:\s*\nJMO)?/gi;
+        
+        let processedText = inputString;
+        let matchBlok;
+
+        while ((matchBlok = regexBlok.exec(inputString)) !== null) {
+            let data = {};
+            data.wilayah = `*${matchBlok[1].trim()}, ${matchBlok[2].trim()}, ${matchBlok[3].trim()}*`;
+            data.nik = matchBlok[4].trim();
+            data.nama = matchBlok[5].trim();
+            
+            let rawGender = matchBlok[6].toUpperCase();
+            data.gender = (rawGender.includes('L') || rawGender.includes('PRIA')) ? 'PRIA' : 'WANITA';
+            
+            data.tglLahir = matchBlok[7].trim();
+            data.status = matchBlok[8].trim(); // Status diambil dari "JUMLAH KPJ"
+            data.id1 = matchBlok[9].trim();
+            data.company = matchBlok[10].trim();
+            data.endDate = kurangiSatuBulan(matchBlok[11].trim());
+            
+            let amountRaw = matchBlok[12].trim().replace(/\./g, '');
+            data.amount = parseInt(amountRaw || "0", 10).toLocaleString('id-ID');
+
+            let blockText = '';
+            let statusCode = parseInt(data.status, 10);
+            
+            if (statusCode >= 2 && statusCode <= 20) {
+                blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nSENSOR JMO OK\nGLOBAL ${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
+            } else if (statusCode === 1) {
+                blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nTUNGGAL\n${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
+            } else {
+                blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nSTATUS_${data.status}\n${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
+            }
+
+            rawProcessedArray.push({
+                index: counterIndex++, 
+                status: data.status,
+                nama: data.nama,      
+                nik: data.nik,        
+                done: false, 
+                selected: true, 
+                text: blockText
+            });
+
+            // Potong dan hapus bagian format baru ini agar tidak dibaca lagi oleh format lama
+            processedText = processedText.replace(matchBlok[0], '');
+        }
+
+        // 2. MESIN PENDETEKSI FORMAT LAMA (Baris Horizontal Tab / Spasi)
+        const lines = processedText.split('\n');
 
         for (let i = 0; i < lines.length; i++) {
             let line = lines[i];
@@ -455,7 +507,7 @@
         }
 
         if (errorLines.length > 0) {
-            alert(`⚠️ Perhatian: Baris data ke-${errorLines.join(', ')} gagal diproses karena format tidak lengkap.`);
+            alert(`⚠️ Perhatian: Beberapa teks gagal diproses karena format tidak dikenali.`);
         }
         
         return rawProcessedArray;
@@ -497,7 +549,7 @@
         const arrayTambahan = prosesTextMentah(input, indexTertinggi + 1);
 
         if (arrayTambahan.length === 0) {
-            alert("⚠️ Tidak ada data baris laporan tambahan yang berhasil diproses!");
+            alert("⚠️ Tidak ada data laporan tambahan yang berhasil diproses!");
             return;
         }
 
@@ -620,46 +672,34 @@
         });
     }
 
-    /* ========================================================
-       FITUR BARU v16: MESIN SALIN SILUMAN ANTI-KEYBOARD POP-UP 
-       ======================================================== */
     function salinTeksAman(text, onSuccess, onFail) {
-        // Coba jalur modern terlebih dahulu (jika HP mendukung/HTTPS)
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(text).then(onSuccess).catch(() => eksekusiSalinSiluman(text, onSuccess, onFail));
         } else {
-            // Langsung eksekusi jalur siluman jika jalur modern tidak tersedia
             eksekusiSalinSiluman(text, onSuccess, onFail);
         }
     }
 
     function eksekusiSalinSiluman(text, onSuccess, onFail) {
-        // 1. Buat kotak teks gaib
         const dummy = document.createElement('textarea');
         dummy.value = text;
-        
-        // 2. KUNCI UTAMA: Beri status 'readonly' agar HP tidak menarik keyboard saat diseleksi
         dummy.setAttribute('readonly', ''); 
-        
-        // 3. Sembunyikan jauh dari layar
         dummy.style.position = 'absolute';
         dummy.style.left = '-9999px';
         
         document.body.appendChild(dummy);
         
         try {
-            // 4. Seleksi dan copy dari kotak gaib
             dummy.select();
-            dummy.setSelectionRange(0, 99999); // Kompatibilitas ekstra untuk iPhone/iOS Safari
+            dummy.setSelectionRange(0, 99999); 
             document.execCommand('copy');
-            document.body.removeChild(dummy); // Hapus jejak
+            document.body.removeChild(dummy); 
             if (onSuccess) onSuccess();
         } catch (err) {
             document.body.removeChild(dummy);
             if (onFail) onFail();
         }
     }
-    // ========================================================
 
     function salinAntreanSelanjutnya() {
         const semuaAntrean = document.querySelectorAll('.send-queue-check:checked');
@@ -676,7 +716,6 @@
 
         if (!txtArea.value) return;
 
-        // Menggunakan mesin salin siluman baru
         salinTeksAman(txtArea.value, () => {
             tampilkanToast(`✔️ Data milik *${namaOrang}* berhasil disalin! Silakan Paste di WhatsApp.`, "#16a34a");
             
@@ -700,7 +739,6 @@
         const txtArea = btnElement.parentElement.parentElement.querySelector('.output-box');
         if (!txtArea.value) return;
         
-        // Menggunakan mesin salin siluman baru
         salinTeksAman(txtArea.value, () => {
             const textLama = btnElement.innerText;
             btnElement.innerText = '✔️ Tersalin';
@@ -718,7 +756,6 @@
 
         if (gabunganSeluruhnya.length === 0) return alert("Kosong! Selesaikan penyusunan terlebih dahulu.");
         
-        // Menggunakan mesin salin siluman baru
         salinTeksAman(gabunganSeluruhnya.join('\n\n\n'), () => {
             alert("Seluruh isi kotak Kolom 1 sampai akhir telah berhasil disalin massal!");
         }, () => {
