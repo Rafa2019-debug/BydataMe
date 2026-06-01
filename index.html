@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ByDataKu Full Auto Detect - Kanban Workspace v21</title>
+    <title>ByDataKu Full Auto Detect - Tabbed Rooms v23</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -14,6 +14,7 @@
             --dark: #000000;
             --light: #f1f5f9;
             --border: #000000;
+            --trash: #475569;
         }
         body {
             font-family: Arial, Helvetica, sans-serif;
@@ -134,7 +135,7 @@
             padding: 15px;
             border-radius: 8px;
             margin-top: 15px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
         .filter-row {
             display: block;
@@ -162,34 +163,35 @@
             outline: none;
             border-color: var(--primary);
         }
-        
-        .hide-done-wrapper {
-            margin-top: 10px;
-            display: block;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            color: #1e293b;
-        }
-        .hide-done-wrapper input {
-            transform: scale(1.2);
-            margin-right: 8px;
-            vertical-align: middle;
-            cursor: pointer;
-        }
 
-        /* --- DESAIN ZONA BARU --- */
-        .zona-title {
-            font-size: 18px;
-            font-weight: bold;
-            padding: 12px 20px;
-            border-radius: 8px;
-            color: #ffffff;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        /* --- DESAIN SISTEM TAB (RUANG TERPISAH) --- */
+        .tab-container {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #cbd5e1;
         }
-        .title-aktif { background: var(--primary); }
-        .title-selesai { background: var(--success); }
+        .tab-btn {
+            flex: 1;
+            padding: 12px 5px;
+            font-size: 15px;
+            font-weight: bold;
+            border: none;
+            background: #e2e8f0;
+            color: #475569;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .tab-btn:hover { background: #cbd5e1; }
+        .tab-btn.active-tab-aktif { background: var(--primary); color: white; }
+        .tab-btn.active-tab-selesai { background: var(--success); color: white; }
+        .tab-btn.active-tab-sampah { background: var(--trash); color: white; }
+        
+        /* Menyembunyikan ruang yang tidak aktif */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        /* ------------------------------------------- */
 
         .columns-wrapper {
             display: block;
@@ -222,6 +224,17 @@
             background-color: #f0fdf4 !important;
             border-color: #10b981 !important;
         }
+
+        .data-column.is-deleted {
+            background-color: #f1f5f9 !important;
+            border-color: #94a3b8 !important;
+            opacity: 0.85;
+        }
+        .data-column.is-deleted .output-box {
+            background-color: #f8fafc !important;
+            border-color: #cbd5e1 !important;
+            color: #475569;
+        }
         
         .col-title {
             font-weight: bold;
@@ -246,6 +259,11 @@
             padding: 10px 5px;
             font-size: 13px;
             text-align: center;
+        }
+        .card-actions .btn-trash-icon {
+            flex: 0.3;
+            background: var(--danger);
+            font-size: 16px;
         }
 
         .output-box {
@@ -284,6 +302,17 @@
             vertical-align: middle;
             cursor: pointer;
         }
+        .deleted-msg {
+            text-align: center;
+            color: var(--danger);
+            padding: 8px;
+            background: #fee2e2;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            font-size: 13px;
+            border: 1px solid #fca5a5;
+        }
 
         .edit-toolbar {
             display: flex;
@@ -314,6 +343,7 @@
             .data-column { width: 98%; margin: 1% 0; }
             .btn { flex: 1 1 calc(50% - 10px); text-align: center; }
             .w-search, .w-sort { width: 100%; }
+            .tab-btn { font-size: 13px; padding: 10px 2px; } /* Sesuaikan ukuran tab untuk HP */
         }
     </style>
 </head>
@@ -324,7 +354,7 @@
 <div class="container">
     <div class="header">
         <h1>❤️ ByDataKu Full Auto Detect</h1>
-        <p>🧠 Auto Deteksi Format Aktif (Pisah Ruang Aktif & Selesai)</p>
+        <p>🧠 Auto Deteksi Format Aktif (Sistem Ruang Tab Terpisah)</p>
     </div>
     
     <label for="inputData">Masukkan Semua Data Mentah:</label>
@@ -338,7 +368,7 @@
         <button class="btn btn-green" onclick="salinSemuaMassal()">📋 Salin Semua</button>
         <button class="btn btn-gray" onclick="downloadTXTMassal()">💾 Download TXT</button>
         <button class="btn btn-orange" onclick="restoreData()">↩ Restore</button>
-        <button class="btn btn-red" onclick="hapusRiwayatTotal()">🗑️ Hapus Riwayat</button>
+        <button class="btn btn-red" onclick="hapusRiwayatTotal()">🗑️ Hapus Riwayat Total</button>
     </div>
 
     <div id="searchArea" class="search-area" style="display: none;">
@@ -356,24 +386,31 @@
                 </select>
             </div>
         </div>
-        <label class="hide-done-wrapper">
-            <input type="checkbox" id="hideDoneCheck" onchange="simpanKeStorage(); saringKartuLaporan()"> 👁️ Sembunyikan seluruh zona "Selesai Dikerjakan"
-        </label>
     </div>
 
-    <!-- RUANG KERJA UTAMA (DIPISAH DUA) -->
+    <!-- MENU TAB NAVIGASI -->
+    <div id="tabContainer" class="tab-container" style="display: none;">
+        <button class="tab-btn active-tab-aktif" id="tabBtnAktif" onclick="gantiTab('aktif')">⏳ Ruang Utama (<span id="hitungAktif">0</span>)</button>
+        <button class="tab-btn" id="tabBtnSelesai" onclick="gantiTab('selesai')">✅ Data Selesai (<span id="hitungSelesai">0</span>)</button>
+        <button class="tab-btn" id="tabBtnSampah" onclick="gantiTab('sampah')">🗑️ Data Dihapus (<span id="hitungSampah">0</span>)</button>
+    </div>
+
+    <!-- RUANG KERJA UTAMA (DIPISAH TIGA TAB) -->
     <div id="ruangKerja" style="display: none;">
         
         <!-- ZONA 1: AKTIF -->
-        <div id="zonaAktif">
-            <div class="zona-title title-aktif">⏳ Antrean Aktif (<span id="hitungAktif">0</span>)</div>
+        <div id="zonaAktif" class="tab-content active">
             <div id="wrapperAktif" class="columns-wrapper"></div>
         </div>
 
         <!-- ZONA 2: SELESAI -->
-        <div id="zonaSelesai">
-            <div class="zona-title title-selesai">✅ Selesai Dikerjakan (<span id="hitungSelesai">0</span>)</div>
+        <div id="zonaSelesai" class="tab-content">
             <div id="wrapperSelesai" class="columns-wrapper"></div>
+        </div>
+
+        <!-- ZONA 3: TONG SAMPAH -->
+        <div id="zonaSampah" class="tab-content">
+            <div id="wrapperSampah" class="columns-wrapper"></div>
         </div>
 
     </div>
@@ -383,13 +420,18 @@
 <script>
     let backupData = { input: "", columns: [] };
     let historiPerKartu = {}; 
+    let tabSaatIni = 'aktif';
 
     window.onload = () => {
+        // Mengingat Tab Terakhir yang dibuka
+        if (localStorage.getItem('savedTab')) {
+            gantiTab(localStorage.getItem('savedTab'));
+        } else {
+            gantiTab('aktif');
+        }
+
         if (localStorage.getItem('savedInput')) {
             document.getElementById('inputData').value = localStorage.getItem('savedInput');
-        }
-        if (localStorage.getItem('hideDoneState')) {
-            document.getElementById('hideDoneCheck').checked = localStorage.getItem('hideDoneState') === 'true';
         }
         if (localStorage.getItem('savedColumnsArray')) {
             const savedArr = JSON.parse(localStorage.getItem('savedColumnsArray'));
@@ -399,9 +441,36 @@
         document.getElementById('searchFilter').addEventListener('input', saringKartuLaporan);
     };
 
+    // FUNGSI BERPINDAH RUANG TAB
+    function gantiTab(namaTab) {
+        tabSaatIni = namaTab;
+        localStorage.setItem('savedTab', namaTab);
+        
+        // Reset warna semua tombol tab
+        document.getElementById('tabBtnAktif').className = 'tab-btn';
+        document.getElementById('tabBtnSelesai').className = 'tab-btn';
+        document.getElementById('tabBtnSampah').className = 'tab-btn';
+        
+        // Sembunyikan semua ruangan
+        document.getElementById('zonaAktif').classList.remove('active');
+        document.getElementById('zonaSelesai').classList.remove('active');
+        document.getElementById('zonaSampah').classList.remove('active');
+        
+        // Tampilkan ruangan yang dipilih saja
+        if(namaTab === 'aktif') {
+            document.getElementById('tabBtnAktif').classList.add('active-tab-aktif');
+            document.getElementById('zonaAktif').classList.add('active');
+        } else if (namaTab === 'selesai') {
+            document.getElementById('tabBtnSelesai').classList.add('active-tab-selesai');
+            document.getElementById('zonaSelesai').classList.add('active');
+        } else if (namaTab === 'sampah') {
+            document.getElementById('tabBtnSampah').classList.add('active-tab-sampah');
+            document.getElementById('zonaSampah').classList.add('active');
+        }
+    }
+
     function simpanKeStorage() {
         localStorage.setItem('savedInput', document.getElementById('inputData').value);
-        localStorage.setItem('hideDoneState', document.getElementById('hideDoneCheck').checked);
 
         let currentColumns = [];
         document.querySelectorAll('.output-box').forEach(box => {
@@ -413,6 +482,7 @@
                 nik: box.getAttribute('data-nik'),
                 index: parseInt(box.getAttribute('data-index') || 0, 10),
                 done: cardParent.classList.contains('is-done'),
+                deleted: cardParent.classList.contains('is-deleted'),
                 selected: massCheck ? massCheck.checked : false,
                 text: box.value
             });
@@ -486,6 +556,7 @@
                 nama: data.nama,      
                 nik: data.nik,        
                 done: false, 
+                deleted: false,
                 selected: true, 
                 text: blockText
             });
@@ -554,6 +625,7 @@
                 nama: data.nama,      
                 nik: data.nik,        
                 done: false, 
+                deleted: false,
                 selected: true, 
                 text: blockText
             });
@@ -569,7 +641,6 @@
     function susunSemua() {
         document.getElementById('searchFilter').value = '';
         document.getElementById('sortFilter').value = 'default';
-        document.getElementById('hideDoneCheck').checked = false;
         
         const input = document.getElementById('inputData').value;
         const arrayBaru = prosesTextMentah(input, 0);
@@ -579,6 +650,7 @@
             return;
         }
 
+        gantiTab('aktif'); // Otomatis pindah ke tab aktif jika baru susun data
         buatElemenKolom(arrayBaru);
         simpanKeStorage();
         saringKartuLaporan();
@@ -609,13 +681,14 @@
 
         const gabunganArray = dataLamaArray.concat(arrayTambahan);
 
+        gantiTab('aktif'); // Otomatis kembali ke ruang utama agar data baru terlihat
         buatElemenKolom(gabunganArray);
         document.getElementById('inputData').value = '';
         
         simpanKeStorage();
         eksekusiPengurutan();
         
-        tampilkanToast(`✔️ ${arrayTambahan.length} Data baru berhasil ditambahkan ke antrean bawah!`, "#0284c7");
+        tampilkanToast(`✔️ ${arrayTambahan.length} Data baru berhasil ditambahkan ke antrean!`, "#0284c7");
     }
 
     function kosongkanInput() {
@@ -625,7 +698,6 @@
 
     function saringKartuLaporan() {
         const kataKunci = document.getElementById('searchFilter').value.toLowerCase();
-        const harusSembunyiDone = document.getElementById('hideDoneCheck').checked;
         const semuaKartu = document.querySelectorAll('.data-column');
         
         semuaKartu.forEach(kartu => {
@@ -638,14 +710,6 @@
                 kartu.style.display = 'none';
             }
         });
-
-        // Kontrol Visibilitas Seluruh Zona Selesai
-        const zonaSelesai = document.getElementById('zonaSelesai');
-        if (harusSembunyiDone) {
-            zonaSelesai.style.display = 'none';
-        } else {
-            zonaSelesai.style.display = 'block';
-        }
     }
 
     function eksekusiPengurutan() {
@@ -665,16 +729,40 @@
         saringKartuLaporan();
     }
 
-    // PENTING: Fitur Berpindah Zona Otomatis
     function toggleTandaiSelesai(btnElement) {
         const kartuInduk = btnElement.parentElement.parentElement;
         kartuInduk.classList.toggle('is-done');
         simpanKeStorage();
         
-        // Refresh layar agar kartu berpindah ruangan (Aktif <-> Selesai)
         let dataArray = JSON.parse(localStorage.getItem('savedColumnsArray')) || [];
         buatElemenKolom(dataArray);
         saringKartuLaporan();
+    }
+
+    function rubahStatusSampah(btnElement, perintah) {
+        simpanKeStorage(); 
+        
+        const kartuInduk = btnElement.closest('.data-column');
+        const idx = parseInt(kartuInduk.querySelector('.output-box').getAttribute('data-index'), 10);
+        let dataArray = JSON.parse(localStorage.getItem('savedColumnsArray')) || [];
+        let indexTarget = dataArray.findIndex(d => d.index === idx);
+        
+        if (indexTarget !== -1) {
+            if (perintah === 'hapus_permanen') {
+                let konfirmasi = confirm("Yakin ingin menghapus data ini secara permanen? Tidak bisa dikembalikan lagi.");
+                if(konfirmasi) dataArray.splice(indexTarget, 1);
+            } else if (perintah === 'buang') {
+                dataArray[indexTarget].deleted = true;
+                dataArray[indexTarget].done = false; 
+                dataArray[indexTarget].selected = false; 
+            } else if (perintah === 'kembalikan') {
+                dataArray[indexTarget].deleted = false;
+            }
+            
+            localStorage.setItem('savedColumnsArray', JSON.stringify(dataArray));
+            buatElemenKolom(dataArray);
+            saringKartuLaporan();
+        }
     }
 
     function initHistoriKartu(idx, teksAwal) {
@@ -720,22 +808,29 @@
     function buatElemenKolom(dataArray) {
         const wrapperAktif = document.getElementById('wrapperAktif');
         const wrapperSelesai = document.getElementById('wrapperSelesai');
+        const wrapperSampah = document.getElementById('wrapperSampah'); 
+        
         const searchArea = document.getElementById('searchArea');
+        const tabContainer = document.getElementById('tabContainer');
         const ruangKerja = document.getElementById('ruangKerja');
         
         wrapperAktif.innerHTML = ''; 
         wrapperSelesai.innerHTML = ''; 
+        wrapperSampah.innerHTML = ''; 
 
         if (dataArray.length > 0) {
             searchArea.style.display = 'block';
+            tabContainer.style.display = 'flex'; // Tampilkan menu tab
             ruangKerja.style.display = 'block';
         } else {
             searchArea.style.display = 'none';
+            tabContainer.style.display = 'none'; // Sembunyikan menu tab jika kosong
             ruangKerja.style.display = 'none';
         }
 
         let jumlahAktif = 0;
         let jumlahSelesai = 0;
+        let jumlahSampah = 0;
 
         dataArray.forEach((item, index) => {
             const itemIndex = item.index !== undefined ? item.index : index;
@@ -744,7 +839,14 @@
             initHistoriKartu(itemIndex, item.text);
             
             const divCol = document.createElement('div');
-            divCol.className = item.done ? 'data-column is-done' : 'data-column';
+            
+            if (item.deleted) {
+                divCol.className = 'data-column is-deleted';
+            } else if (item.done) {
+                divCol.className = 'data-column is-done';
+            } else {
+                divCol.className = 'data-column';
+            }
             
             let titleClass = 'title-tunggal';
             let titleLabel = `KOLOM ${colNumber} (TUNGGAL)`;
@@ -755,19 +857,40 @@
                 titleLabel = `KOLOM ${colNumber} (GLOBAL / SENSOR)`;
             }
 
-            let textTombolDone = item.done ? '↩ Buka Tanda' : '✔️ Selesai';
-            let kelasTombolDone = item.done ? 'btn btn-uncheck' : 'btn btn-check';
-            let isChecked = item.selected ? 'checked' : '';
+            let actionHTML = '';
+            let queueCheckHTML = '';
+
+            if (item.deleted) {
+                queueCheckHTML = `<div class="deleted-msg">🗑️ Berada di Tempat Sampah</div>`;
+                actionHTML = `
+                    <div class="card-actions">
+                        <button class="btn btn-blue" onclick="rubahStatusSampah(this, 'kembalikan')">↩ Kembalikan</button>
+                        <button class="btn btn-red" onclick="rubahStatusSampah(this, 'hapus_permanen')">❌ Hapus Permanen</button>
+                    </div>
+                `;
+            } else {
+                let textTombolDone = item.done ? '↩ Buka Tanda' : '✔️ Selesai';
+                let kelasTombolDone = item.done ? 'btn btn-uncheck' : 'btn btn-check';
+                let isChecked = item.selected ? 'checked' : '';
+                
+                queueCheckHTML = `
+                    <div class="mass-check-row">
+                        <input type="checkbox" class="send-queue-check" ${isChecked} onchange="simpanKeStorage()"> 📌 Pilih Masuk Antrean
+                    </div>`;
+                
+                actionHTML = `
+                    <div class="card-actions">
+                        <button class="btn btn-green" onclick="salinSatuKolom(this)">📋 Salin</button>
+                        <button class="${kelasTombolDone}" onclick="toggleTandaiSelesai(this)">${textTombolDone}</button>
+                        <button class="btn btn-red btn-trash-icon" title="Buang ke Sampah" onclick="rubahStatusSampah(this, 'buang')">🗑️</button>
+                    </div>
+                `;
+            }
 
             divCol.innerHTML = `
                 <div class="col-title ${titleClass}">${titleLabel}</div>
-                <div class="mass-check-row">
-                    <input type="checkbox" class="send-queue-check" ${isChecked} onchange="simpanKeStorage()"> 📌 Pilih Masuk Antrean
-                </div>
-                <div class="card-actions">
-                    <button class="btn btn-green" onclick="salinSatuKolom(this)">📋 Salin</button>
-                    <button class="${kelasTombolDone}" onclick="toggleTandaiSelesai(this)">${textTombolDone}</button>
-                </div>
+                ${queueCheckHTML}
+                ${actionHTML}
                 <textarea class="output-box" data-status="${item.status}" data-nama="${item.nama || ''}" data-nik="${item.nik || ''}" data-index="${itemIndex}">${item.text}</textarea>
                 
                 <div class="edit-toolbar">
@@ -776,8 +899,11 @@
                 </div>
             `;
             
-            // PISAHKAN BERDASARKAN STATUS
-            if (item.done) {
+            // PISAHKAN BERDASARKAN ZONA TAB
+            if (item.deleted) {
+                wrapperSampah.appendChild(divCol);
+                jumlahSampah++;
+            } else if (item.done) {
                 wrapperSelesai.appendChild(divCol);
                 jumlahSelesai++;
             } else {
@@ -786,9 +912,10 @@
             }
         });
 
-        // UPDATE ANGKA PENGHITUNG
+        // UPDATE ANGKA PADA TOMBOL TAB
         document.getElementById('hitungAktif').innerText = jumlahAktif;
         document.getElementById('hitungSelesai').innerText = jumlahSelesai;
+        document.getElementById('hitungSampah').innerText = jumlahSampah;
 
         document.querySelectorAll('.output-box').forEach(box => {
             box.addEventListener('input', function() {
@@ -841,10 +968,10 @@
     }
 
     function salinAntreanSelanjutnya() {
-        const semuaAntrean = document.querySelectorAll('.send-queue-check:checked');
+        const semuaAntrean = document.querySelectorAll('#zonaAktif .send-queue-check:checked'); 
         
         if (semuaAntrean.length === 0) {
-            tampilkanToast("⚠️ Antrean habis atau tidak ada data yang dicentang!", "#dc2626");
+            tampilkanToast("⚠️ Antrean habis atau tidak ada data di ruang utama yang dicentang!", "#dc2626");
             return;
         }
 
@@ -856,13 +983,12 @@
         if (!txtArea.value) return;
 
         salinTeksAman(txtArea.value, () => {
-            tampilkanToast(`✔️ Data milik *${namaOrang}* berhasil disalin! Silakan Paste di WhatsApp.`, "#16a34a");
+            tampilkanToast(`✔️ Data milik *${namaOrang}* berhasil disalin! Silakan Paste di WA.`, "#16a34a");
             
             checkTeratas.checked = false;
             kartuInduk.classList.add('is-done');
             simpanKeStorage();
             
-            // Pindahkan ke Zona Selesai
             let dataArray = JSON.parse(localStorage.getItem('savedColumnsArray')) || [];
             buatElemenKolom(dataArray);
             saringKartuLaporan(); 
@@ -886,14 +1012,14 @@
 
     function salinSemuaMassal() {
         let gabunganSeluruhnya = [];
-        document.querySelectorAll('.output-box').forEach((box, i) => {
+        document.querySelectorAll('#zonaAktif .output-box, #zonaSelesai .output-box').forEach((box, i) => {
             gabunganSeluruhnya.push(`=== KOLOM ${i+1} ===\n${box.value}`);
         });
 
         if (gabunganSeluruhnya.length === 0) return alert("Kosong! Selesaikan penyusunan terlebih dahulu.");
         
         salinTeksAman(gabunganSeluruhnya.join('\n\n\n'), () => {
-            alert("Seluruh isi kotak Kolom 1 sampai akhir telah berhasil disalin massal!");
+            alert("Seluruh isi kotak yang bukan sampah telah berhasil disalin massal!");
         }, () => {
             alert("Gagal menyalin data massal.");
         });
@@ -909,7 +1035,7 @@
 
     function downloadTXTMassal() {
         let gabunganSeluruhnya = [];
-        document.querySelectorAll('.output-box').forEach((box, i) => {
+        document.querySelectorAll('#zonaAktif .output-box, #zonaSelesai .output-box').forEach((box, i) => {
             gabunganSeluruhnya.push(`=== KOLOM ${i+1} ===\n${box.value}`);
         });
 
@@ -929,17 +1055,17 @@
         backupData.columns = [];
         document.querySelectorAll('.output-box').forEach(box => {
             const cardParent = box.parentElement;
-            backupData.columns.push({ status: box.getAttribute('data-status'), nama: box.getAttribute('data-nama'), nik: box.getAttribute('data-nik'), index: box.getAttribute('data-index'), done: cardParent.classList.contains('is-done'), text: box.value });
+            backupData.columns.push({ status: box.getAttribute('data-status'), nama: box.getAttribute('data-nama'), nik: box.getAttribute('data-nik'), index: box.getAttribute('data-index'), done: cardParent.classList.contains('is-done'), deleted: cardParent.classList.contains('is-deleted'), text: box.value });
         });
 
         document.getElementById('inputData').value = '';
         document.getElementById('searchFilter').value = '';
         document.getElementById('sortFilter').value = 'default';
-        document.getElementById('hideDoneCheck').checked = false;
         document.getElementById('searchArea').style.display = 'none';
+        document.getElementById('tabContainer').style.display = 'none';
         document.getElementById('ruangKerja').style.display = 'none';
         
-        localStorage.removeItem('hideDoneState');
+        localStorage.removeItem('savedTab');
         localStorage.removeItem('savedColumnsArray');
         localStorage.removeItem('savedInput');
         historiPerKartu = {}; 
