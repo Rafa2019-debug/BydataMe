@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ByDataKu Full Auto Detect - Top Buttons v19</title>
+    <title>ByDataKu Full Auto Detect - Per Card Undo/Redo v20</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -226,7 +226,7 @@
         .card-actions {
             display: flex;
             gap: 5px;
-            margin-bottom: 10px; /* Jarak antara tombol dan kotak teks di bawahnya */
+            margin-bottom: 10px; 
         }
         .card-actions .btn {
             flex: 1;
@@ -272,6 +272,28 @@
             cursor: pointer;
         }
 
+        /* Desain Barisan Undo Redo */
+        .edit-toolbar {
+            display: flex;
+            justify-content: space-between;
+            gap: 5px;
+            margin-top: 8px;
+        }
+        .edit-toolbar button {
+            flex: 1;
+            padding: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            background: #e2e8f0;
+            color: #1e293b;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .edit-toolbar button:hover { background: #cbd5e1; }
+        .edit-toolbar button:active { background: #94a3b8; }
+
         @media (min-width: 769px) {
             .w-search { width: 63%; margin-right: 2%; }
             .w-sort { width: 35%; }
@@ -290,7 +312,7 @@
 <div class="container">
     <div class="header">
         <h1>❤️ ByDataKu Full Auto Detect</h1>
-        <p>🧠 Auto Deteksi Format Aktif (Update Posisi Tombol Praktis)</p>
+        <p>🧠 Auto Deteksi Format Aktif (Undo & Redo Per-Data Ready!)</p>
     </div>
     
     <label for="inputData">Masukkan Semua Data Mentah:</label>
@@ -332,6 +354,9 @@
 
 <script>
     let backupData = { input: "", columns: [] };
+    
+    // VARIABEL BARU: Mesin Waktu Menyimpan Riwayat Edit Tiap Kartu
+    let historiPerKartu = {}; 
 
     window.onload = () => {
         if (localStorage.getItem('savedInput')) {
@@ -625,6 +650,47 @@
         saringKartuLaporan();
     }
 
+    // FUNGSI BARU: Inisiasi Mesin Waktu / Histori Kartu
+    function initHistoriKartu(idx, teksAwal) {
+        if (!historiPerKartu[idx]) {
+            historiPerKartu[idx] = { masaLalu: [], sekarang: teksAwal, masaDepan: [] };
+        }
+    }
+
+    function undoTeksKartu(btnElemen) {
+        const kartu = btnElemen.closest('.data-column');
+        const kotakTeks = kartu.querySelector('.output-box');
+        const idx = kotakTeks.getAttribute('data-index');
+        let histori = historiPerKartu[idx];
+        
+        if (histori && histori.masaLalu.length > 0) {
+            histori.masaDepan.push(histori.sekarang);
+            let mundur = histori.masaLalu.pop();
+            histori.sekarang = mundur;
+            kotakTeks.value = mundur;
+            simpanKeStorage();
+        } else {
+            tampilkanToast("Batas undo telah tercapai.", "#d97706");
+        }
+    }
+
+    function redoTeksKartu(btnElemen) {
+        const kartu = btnElemen.closest('.data-column');
+        const kotakTeks = kartu.querySelector('.output-box');
+        const idx = kotakTeks.getAttribute('data-index');
+        let histori = historiPerKartu[idx];
+        
+        if (histori && histori.masaDepan.length > 0) {
+            histori.masaLalu.push(histori.sekarang);
+            let maju = histori.masaDepan.pop();
+            histori.sekarang = maju;
+            kotakTeks.value = maju;
+            simpanKeStorage();
+        } else {
+            tampilkanToast("Batas redo telah tercapai.", "#d97706");
+        }
+    }
+
     function buatElemenKolom(dataArray) {
         const wrapper = document.getElementById('wrapperHasil');
         const searchArea = document.getElementById('searchArea');
@@ -639,6 +705,9 @@
         dataArray.forEach((item, index) => {
             const itemIndex = item.index !== undefined ? item.index : index;
             const colNumber = itemIndex + 1; 
+            
+            // Daftarkan kartu ini ke Mesin Waktu
+            initHistoriKartu(itemIndex, item.text);
             
             const divCol = document.createElement('div');
             divCol.className = item.done ? 'data-column is-done' : 'data-column';
@@ -656,7 +725,6 @@
             let kelasTombolDone = item.done ? 'btn btn-uncheck' : 'btn btn-check';
             let isChecked = item.selected ? 'checked' : '';
 
-            // PERUBAHAN: Memindahkan barisan tombol (.card-actions) ke atas kotak teks (.output-box)
             divCol.innerHTML = `
                 <div class="col-title ${titleClass}">${titleLabel}</div>
                 <div class="mass-check-row">
@@ -667,12 +735,34 @@
                     <button class="${kelasTombolDone}" onclick="toggleTandaiSelesai(this)">${textTombolDone}</button>
                 </div>
                 <textarea class="output-box" data-status="${item.status}" data-nama="${item.nama || ''}" data-nik="${item.nik || ''}" data-index="${itemIndex}">${item.text}</textarea>
+                
+                <div class="edit-toolbar">
+                    <button onclick="undoTeksKartu(this)">↺ Undo Teks</button>
+                    <button onclick="redoTeksKartu(this)">↻ Redo Teks</button>
+                </div>
             `;
             wrapper.appendChild(divCol);
         });
 
+        // Event Listener khusus Undo/Redo saat pengetikan terjadi
         document.querySelectorAll('.output-box').forEach(box => {
-            box.addEventListener('input', simpanKeStorage);
+            box.addEventListener('input', function() {
+                simpanKeStorage();
+                
+                const idx = this.getAttribute('data-index');
+                const nilaiSekarang = this.value;
+                
+                clearTimeout(this.jedaKetik);
+                this.jedaKetik = setTimeout(() => {
+                    let histori = historiPerKartu[idx];
+                    if (histori && histori.sekarang !== nilaiSekarang) {
+                        histori.masaLalu.push(histori.sekarang);
+                        if (histori.masaLalu.length > 40) histori.masaLalu.shift(); // Batas maksimal 40 langkah mundur
+                        histori.sekarang = nilaiSekarang;
+                        histori.masaDepan = []; // Reset jalur masa depan jika ada editan baru
+                    }
+                }, 500); // Sistem akan merekam jika Anda berhenti mengetik selama 0,5 detik
+            });
         });
     }
 
@@ -810,6 +900,7 @@
         localStorage.removeItem('hideDoneState');
         localStorage.removeItem('savedColumnsArray');
         localStorage.removeItem('savedInput');
+        historiPerKartu = {}; // Reset juga mesin waktu
     }
 
     function restoreData() {
