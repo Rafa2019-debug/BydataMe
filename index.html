@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ByDataKu Full Auto Detect - Per Card Undo/Redo v20</title>
+    <title>ByDataKu Full Auto Detect - Kanban Workspace v21</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -134,7 +134,7 @@
             padding: 15px;
             border-radius: 8px;
             margin-top: 15px;
-            margin-bottom: 5px;
+            margin-bottom: 25px;
         }
         .filter-row {
             display: block;
@@ -178,11 +178,24 @@
             cursor: pointer;
         }
 
+        /* --- DESAIN ZONA BARU --- */
+        .zona-title {
+            font-size: 18px;
+            font-weight: bold;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: #ffffff;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        .title-aktif { background: var(--primary); }
+        .title-selesai { background: var(--success); }
+
         .columns-wrapper {
             display: block;
             width: 100%;
-            margin-top: 15px;
             font-size: 0;
+            margin-bottom: 30px;
         }
         
         .data-column {
@@ -272,7 +285,6 @@
             cursor: pointer;
         }
 
-        /* Desain Barisan Undo Redo */
         .edit-toolbar {
             display: flex;
             justify-content: space-between;
@@ -312,7 +324,7 @@
 <div class="container">
     <div class="header">
         <h1>❤️ ByDataKu Full Auto Detect</h1>
-        <p>🧠 Auto Deteksi Format Aktif (Undo & Redo Per-Data Ready!)</p>
+        <p>🧠 Auto Deteksi Format Aktif (Pisah Ruang Aktif & Selesai)</p>
     </div>
     
     <label for="inputData">Masukkan Semua Data Mentah:</label>
@@ -345,17 +357,31 @@
             </div>
         </div>
         <label class="hide-done-wrapper">
-            <input type="checkbox" id="hideDoneCheck" onchange="simpanKeStorage(); saringKartuLaporan()"> 👁️ Sembunyikan data kartu yang sudah ditandai "Selesai"
+            <input type="checkbox" id="hideDoneCheck" onchange="simpanKeStorage(); saringKartuLaporan()"> 👁️ Sembunyikan seluruh zona "Selesai Dikerjakan"
         </label>
     </div>
 
-    <div id="wrapperHasil" class="columns-wrapper"></div>
+    <!-- RUANG KERJA UTAMA (DIPISAH DUA) -->
+    <div id="ruangKerja" style="display: none;">
+        
+        <!-- ZONA 1: AKTIF -->
+        <div id="zonaAktif">
+            <div class="zona-title title-aktif">⏳ Antrean Aktif (<span id="hitungAktif">0</span>)</div>
+            <div id="wrapperAktif" class="columns-wrapper"></div>
+        </div>
+
+        <!-- ZONA 2: SELESAI -->
+        <div id="zonaSelesai">
+            <div class="zona-title title-selesai">✅ Selesai Dikerjakan (<span id="hitungSelesai">0</span>)</div>
+            <div id="wrapperSelesai" class="columns-wrapper"></div>
+        </div>
+
+    </div>
+
 </div>
 
 <script>
     let backupData = { input: "", columns: [] };
-    
-    // VARIABEL BARU: Mesin Waktu Menyimpan Riwayat Edit Tiap Kartu
     let historiPerKartu = {}; 
 
     window.onload = () => {
@@ -604,17 +630,22 @@
         
         semuaKartu.forEach(kartu => {
             const isiTeksKartu = kartu.querySelector('.output-box').value.toLowerCase();
-            const apakahKartuDone = kartu.classList.contains('is-done');
-            
             let lolosTeks = isiTeksKartu.includes(kataKunci);
-            let lolosDone = !(harusSembunyiDone && apakahKartuDone);
             
-            if (lolosTeks && lolosDone) {
+            if (lolosTeks) {
                 kartu.style.display = 'inline-block';
             } else {
                 kartu.style.display = 'none';
             }
         });
+
+        // Kontrol Visibilitas Seluruh Zona Selesai
+        const zonaSelesai = document.getElementById('zonaSelesai');
+        if (harusSembunyiDone) {
+            zonaSelesai.style.display = 'none';
+        } else {
+            zonaSelesai.style.display = 'block';
+        }
     }
 
     function eksekusiPengurutan() {
@@ -634,23 +665,18 @@
         saringKartuLaporan();
     }
 
+    // PENTING: Fitur Berpindah Zona Otomatis
     function toggleTandaiSelesai(btnElement) {
         const kartuInduk = btnElement.parentElement.parentElement;
         kartuInduk.classList.toggle('is-done');
-        
-        if (kartuInduk.classList.contains('is-done')) {
-            btnElement.innerText = '↩ Buka Tanda';
-            btnElement.className = 'btn btn-uncheck';
-        } else {
-            btnElement.innerText = '✔️ Selesai';
-            btnElement.className = 'btn btn-check';
-        }
-        
         simpanKeStorage();
+        
+        // Refresh layar agar kartu berpindah ruangan (Aktif <-> Selesai)
+        let dataArray = JSON.parse(localStorage.getItem('savedColumnsArray')) || [];
+        buatElemenKolom(dataArray);
         saringKartuLaporan();
     }
 
-    // FUNGSI BARU: Inisiasi Mesin Waktu / Histori Kartu
     function initHistoriKartu(idx, teksAwal) {
         if (!historiPerKartu[idx]) {
             historiPerKartu[idx] = { masaLalu: [], sekarang: teksAwal, masaDepan: [] };
@@ -692,21 +718,29 @@
     }
 
     function buatElemenKolom(dataArray) {
-        const wrapper = document.getElementById('wrapperHasil');
+        const wrapperAktif = document.getElementById('wrapperAktif');
+        const wrapperSelesai = document.getElementById('wrapperSelesai');
         const searchArea = document.getElementById('searchArea');
-        wrapper.innerHTML = ''; 
+        const ruangKerja = document.getElementById('ruangKerja');
+        
+        wrapperAktif.innerHTML = ''; 
+        wrapperSelesai.innerHTML = ''; 
 
         if (dataArray.length > 0) {
             searchArea.style.display = 'block';
+            ruangKerja.style.display = 'block';
         } else {
             searchArea.style.display = 'none';
+            ruangKerja.style.display = 'none';
         }
+
+        let jumlahAktif = 0;
+        let jumlahSelesai = 0;
 
         dataArray.forEach((item, index) => {
             const itemIndex = item.index !== undefined ? item.index : index;
             const colNumber = itemIndex + 1; 
             
-            // Daftarkan kartu ini ke Mesin Waktu
             initHistoriKartu(itemIndex, item.text);
             
             const divCol = document.createElement('div');
@@ -741,10 +775,21 @@
                     <button onclick="redoTeksKartu(this)">↻ Redo Teks</button>
                 </div>
             `;
-            wrapper.appendChild(divCol);
+            
+            // PISAHKAN BERDASARKAN STATUS
+            if (item.done) {
+                wrapperSelesai.appendChild(divCol);
+                jumlahSelesai++;
+            } else {
+                wrapperAktif.appendChild(divCol);
+                jumlahAktif++;
+            }
         });
 
-        // Event Listener khusus Undo/Redo saat pengetikan terjadi
+        // UPDATE ANGKA PENGHITUNG
+        document.getElementById('hitungAktif').innerText = jumlahAktif;
+        document.getElementById('hitungSelesai').innerText = jumlahSelesai;
+
         document.querySelectorAll('.output-box').forEach(box => {
             box.addEventListener('input', function() {
                 simpanKeStorage();
@@ -757,11 +802,11 @@
                     let histori = historiPerKartu[idx];
                     if (histori && histori.sekarang !== nilaiSekarang) {
                         histori.masaLalu.push(histori.sekarang);
-                        if (histori.masaLalu.length > 40) histori.masaLalu.shift(); // Batas maksimal 40 langkah mundur
+                        if (histori.masaLalu.length > 40) histori.masaLalu.shift();
                         histori.sekarang = nilaiSekarang;
-                        histori.masaDepan = []; // Reset jalur masa depan jika ada editan baru
+                        histori.masaDepan = []; 
                     }
-                }, 500); // Sistem akan merekam jika Anda berhenti mengetik selama 0,5 detik
+                }, 500); 
             });
         });
     }
@@ -815,14 +860,11 @@
             
             checkTeratas.checked = false;
             kartuInduk.classList.add('is-done');
-            
-            const btnDone = kartuInduk.querySelector('.card-actions button:nth-child(2)');
-            if (btnDone) {
-                btnDone.innerText = '↩ Buka Tanda';
-                btnDone.className = 'btn btn-uncheck';
-            }
-
             simpanKeStorage();
+            
+            // Pindahkan ke Zona Selesai
+            let dataArray = JSON.parse(localStorage.getItem('savedColumnsArray')) || [];
+            buatElemenKolom(dataArray);
             saringKartuLaporan(); 
         }, () => {
             alert("Sistem HP Anda menolak akses salin otomatis.");
@@ -895,12 +937,12 @@
         document.getElementById('sortFilter').value = 'default';
         document.getElementById('hideDoneCheck').checked = false;
         document.getElementById('searchArea').style.display = 'none';
-        document.getElementById('wrapperHasil').innerHTML = '';
+        document.getElementById('ruangKerja').style.display = 'none';
         
         localStorage.removeItem('hideDoneState');
         localStorage.removeItem('savedColumnsArray');
         localStorage.removeItem('savedInput');
-        historiPerKartu = {}; // Reset juga mesin waktu
+        historiPerKartu = {}; 
     }
 
     function restoreData() {
