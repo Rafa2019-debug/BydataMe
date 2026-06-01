@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ByDataKu Full Auto Detect - Multi-Format Vertical v17</title>
+    <title>ByDataKu Full Auto Detect - Top Buttons v19</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -223,6 +223,18 @@
         .title-global { background: #0f172a; }
         .title-tunggal { background: #334155; }
         
+        .card-actions {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px; /* Jarak antara tombol dan kotak teks di bawahnya */
+        }
+        .card-actions .btn {
+            flex: 1;
+            padding: 10px 5px;
+            font-size: 13px;
+            text-align: center;
+        }
+
         .output-box {
             width: 100%;
             height: 380px;
@@ -242,26 +254,14 @@
             outline: none;
             border-color: var(--primary);
         }
-        
-        .card-actions {
-            display: flex;
-            gap: 5px;
-            margin-top: 10px;
-        }
-        .card-actions .btn {
-            flex: 1;
-            padding: 10px 5px;
-            font-size: 13px;
-            text-align: center;
-        }
 
         .mass-check-row {
-            margin-bottom: 8px; 
+            margin-bottom: 10px; 
             font-weight: bold; 
             color: #000000; 
             font-size: 13px;
             background: #f1f5f9;
-            padding: 6px;
+            padding: 8px;
             border-radius: 4px;
             border: 1px solid #cbd5e1;
         }
@@ -290,7 +290,7 @@
 <div class="container">
     <div class="header">
         <h1>❤️ ByDataKu Full Auto Detect</h1>
-        <p>🧠 Auto Deteksi Format Aktif (Dukung Multi-Format Baris & Vertikal)</p>
+        <p>🧠 Auto Deteksi Format Aktif (Update Posisi Tombol Praktis)</p>
     </div>
     
     <label for="inputData">Masukkan Semua Data Mentah:</label>
@@ -323,7 +323,7 @@
             </div>
         </div>
         <label class="hide-done-wrapper">
-            <input type="checkbox" id="hideDoneCheck" onchange="saringKartuLaporan()"> 👁️ Sembunyikan data kartu yang sudah ditandai "Selesai"
+            <input type="checkbox" id="hideDoneCheck" onchange="simpanKeStorage(); saringKartuLaporan()"> 👁️ Sembunyikan data kartu yang sudah ditandai "Selesai"
         </label>
     </div>
 
@@ -337,15 +337,21 @@
         if (localStorage.getItem('savedInput')) {
             document.getElementById('inputData').value = localStorage.getItem('savedInput');
         }
+        if (localStorage.getItem('hideDoneState')) {
+            document.getElementById('hideDoneCheck').checked = localStorage.getItem('hideDoneState') === 'true';
+        }
         if (localStorage.getItem('savedColumnsArray')) {
             const savedArr = JSON.parse(localStorage.getItem('savedColumnsArray'));
             buatElemenKolom(savedArr);
+            saringKartuLaporan();
         }
         document.getElementById('searchFilter').addEventListener('input', saringKartuLaporan);
     };
 
     function simpanKeStorage() {
         localStorage.setItem('savedInput', document.getElementById('inputData').value);
+        localStorage.setItem('hideDoneState', document.getElementById('hideDoneCheck').checked);
+
         let currentColumns = [];
         document.querySelectorAll('.output-box').forEach(box => {
             const cardParent = box.parentElement;
@@ -389,8 +395,6 @@
         let errorLines = [];
         let counterIndex = indexMulai;
 
-        // 1. MESIN PENDETEKSI FORMAT BARU (Blok Vertikal)
-        // Menangkap area: Kabupaten hingga Nominal Saldo
         const regexBlok = /(?:\[.*?\]\s*.*?:)?\s*Kabupaten:\s*(.+?)\s*\nKecamatan:\s*(.+?)\s*\nKelurahan:\s*(.+?)\s*\n+(\d{16})\s*\n(.+?)\s*\n(.*?)\s*\|\s*(\d{2}-\d{2}-\d{4})\s*\nJUMLAH KPJ:\s*(\d+)\s*\n(\d+)\s*\n(.+?)\s*\n(\d{2}-\d{2}-\d{4})\s*\nTOTAL SALDO\s*:\s*Rp\s*([\d\.]+)(?:\s*\nJMO)?/gi;
         
         let processedText = inputString;
@@ -406,7 +410,7 @@
             data.gender = (rawGender.includes('L') || rawGender.includes('PRIA')) ? 'PRIA' : 'WANITA';
             
             data.tglLahir = matchBlok[7].trim();
-            data.status = matchBlok[8].trim(); // Status diambil dari "JUMLAH KPJ"
+            data.status = matchBlok[8].trim(); 
             data.id1 = matchBlok[9].trim();
             data.company = matchBlok[10].trim();
             data.endDate = kurangiSatuBulan(matchBlok[11].trim());
@@ -435,11 +439,9 @@
                 text: blockText
             });
 
-            // Potong dan hapus bagian format baru ini agar tidak dibaca lagi oleh format lama
             processedText = processedText.replace(matchBlok[0], '');
         }
 
-        // 2. MESIN PENDETEKSI FORMAT LAMA (Baris Horizontal Tab / Spasi)
         const lines = processedText.split('\n');
 
         for (let i = 0; i < lines.length; i++) {
@@ -528,6 +530,7 @@
 
         buatElemenKolom(arrayBaru);
         simpanKeStorage();
+        saringKartuLaporan();
     }
 
     function tambahKeAntrean() {
@@ -653,16 +656,17 @@
             let kelasTombolDone = item.done ? 'btn btn-uncheck' : 'btn btn-check';
             let isChecked = item.selected ? 'checked' : '';
 
+            // PERUBAHAN: Memindahkan barisan tombol (.card-actions) ke atas kotak teks (.output-box)
             divCol.innerHTML = `
                 <div class="col-title ${titleClass}">${titleLabel}</div>
                 <div class="mass-check-row">
                     <input type="checkbox" class="send-queue-check" ${isChecked} onchange="simpanKeStorage()"> 📌 Pilih Masuk Antrean
                 </div>
-                <textarea class="output-box" data-status="${item.status}" data-nama="${item.nama || ''}" data-nik="${item.nik || ''}" data-index="${itemIndex}">${item.text}</textarea>
                 <div class="card-actions">
                     <button class="btn btn-green" onclick="salinSatuKolom(this)">📋 Salin</button>
                     <button class="${kelasTombolDone}" onclick="toggleTandaiSelesai(this)">${textTombolDone}</button>
                 </div>
+                <textarea class="output-box" data-status="${item.status}" data-nama="${item.nama || ''}" data-nik="${item.nik || ''}" data-index="${itemIndex}">${item.text}</textarea>
             `;
             wrapper.appendChild(divCol);
         });
@@ -802,7 +806,10 @@
         document.getElementById('hideDoneCheck').checked = false;
         document.getElementById('searchArea').style.display = 'none';
         document.getElementById('wrapperHasil').innerHTML = '';
-        localStorage.clear();
+        
+        localStorage.removeItem('hideDoneState');
+        localStorage.removeItem('savedColumnsArray');
+        localStorage.removeItem('savedInput');
     }
 
     function restoreData() {
@@ -813,6 +820,7 @@
         document.getElementById('inputData').value = backupData.input;
         buatElemenKolom(backupData.columns);
         simpanKeStorage();
+        saringKartuLaporan();
     }
 </script>
 
