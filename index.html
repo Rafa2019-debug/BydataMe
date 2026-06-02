@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ByDataKu Full Auto Detect - Tabbed Rooms v23</title>
+    <title>ByDataKu Full Auto Detect - V27 (Fix Button Color)</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -60,6 +60,15 @@
             color: #000000;
             margin-bottom: 8px;
         }
+
+        /* Mode Sembunyikan Input Box */
+        .input-section {
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        .input-section.hidden {
+            display: none;
+        }
         
         #inputData {
             width: 100%;
@@ -108,9 +117,10 @@
         .btn-orange { background: var(--warning); }
         .btn-red { background: var(--danger); }
         
-        .btn-check { background: #4b5563; } 
-        .btn-uncheck { background: var(--warning); }
-
+        /* FIX: Nama class baru agar tidak transparan */
+        .btn-status-done { background: #334155; color: #ffffff; } 
+        .btn-status-undone { background: var(--warning); color: #ffffff; } 
+        
         #toastNotif {
             display: none;
             position: fixed;
@@ -138,14 +148,14 @@
             margin-bottom: 20px;
         }
         .filter-row {
-            display: block;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
             width: 100%;
         }
         .filter-col {
-            display: inline-block;
-            vertical-align: top;
-            box-sizing: border-box;
-            margin-bottom: 10px;
+            flex: 1;
+            min-width: 250px;
         }
         .search-input {
             width: 100%;
@@ -162,6 +172,43 @@
         .search-input:focus {
             outline: none;
             border-color: var(--primary);
+        }
+
+        /* --- DESAIN CHIP PROVINSI (BISA DIGESER) --- */
+        .chip-scroll-container {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto; 
+            padding-bottom: 8px; 
+            white-space: nowrap;
+            scrollbar-width: none; 
+        }
+        .chip-scroll-container::-webkit-scrollbar {
+            display: none; 
+        }
+        .prio-chip {
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 800;
+            background: #ffffff;
+            color: #0f172a;
+            border: 2px solid #cbd5e1;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            flex-shrink: 0; 
+        }
+        .prio-chip:hover {
+            background: #e2e8f0;
+            border-color: #94a3b8;
+        }
+        .prio-chip.active {
+            background: #0f172a;
+            color: #ffffff;
+            border-color: #0f172a;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transform: scale(1.05);
         }
 
         /* --- DESAIN SISTEM TAB (RUANG TERPISAH) --- */
@@ -188,10 +235,8 @@
         .tab-btn.active-tab-selesai { background: var(--success); color: white; }
         .tab-btn.active-tab-sampah { background: var(--trash); color: white; }
         
-        /* Menyembunyikan ruang yang tidak aktif */
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        /* ------------------------------------------- */
 
         .columns-wrapper {
             display: block;
@@ -213,7 +258,8 @@
             vertical-align: top;
             box-sizing: border-box;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            transition: background-color 0.3s, border-color 0.3s;
+            transition: all 0.3s ease;
+            position: relative; 
         }
         
         .data-column.is-done {
@@ -235,7 +281,7 @@
             border-color: #cbd5e1 !important;
             color: #475569;
         }
-        
+
         .col-title {
             font-weight: bold;
             text-align: center;
@@ -335,15 +381,10 @@
         .edit-toolbar button:hover { background: #cbd5e1; }
         .edit-toolbar button:active { background: #94a3b8; }
 
-        @media (min-width: 769px) {
-            .w-search { width: 63%; margin-right: 2%; }
-            .w-sort { width: 35%; }
-        }
         @media (max-width: 768px) {
-            .data-column { width: 98%; margin: 1% 0; }
+            .data-column { width: 98%; margin: 3% 0; }
             .btn { flex: 1 1 calc(50% - 10px); text-align: center; }
-            .w-search, .w-sort { width: 100%; }
-            .tab-btn { font-size: 13px; padding: 10px 2px; } /* Sesuaikan ukuran tab untuk HP */
+            .tab-btn { font-size: 13px; padding: 10px 2px; }
         }
     </style>
 </head>
@@ -354,36 +395,53 @@
 <div class="container">
     <div class="header">
         <h1>❤️ ByDataKu Full Auto Detect</h1>
-        <p>🧠 Auto Deteksi Format Aktif (Sistem Ruang Tab Terpisah)</p>
+        <p>🧠 Filter Provinsi Otomatis & Fix Warna Tombol</p>
     </div>
     
-    <label for="inputData">Masukkan Semua Data Mentah:</label>
-    <textarea id="inputData" placeholder="Paste baris chat WhatsApp di sini..."></textarea>
-
-    <div class="toolbar">
-        <button class="btn btn-blue" onclick="susunSemua()">⚙️ Susun Semua</button>
-        <button class="btn btn-cyan" onclick="tambahKeAntrean()">➕ Tambah Data</button>
-        <button class="btn btn-gray" onclick="kosongkanInput()">✖️ Kosongkan Input</button>
-        <button class="btn btn-orange" style="font-weight:800; background:#d97706; box-shadow:0 0 10px rgba(217,119,6,0.5);" onclick="salinAntreanSelanjutnya()">📋 Salin Antrean</button>
-        <button class="btn btn-green" onclick="salinSemuaMassal()">📋 Salin Semua</button>
-        <button class="btn btn-gray" onclick="downloadTXTMassal()">💾 Download TXT</button>
-        <button class="btn btn-orange" onclick="restoreData()">↩ Restore</button>
-        <button class="btn btn-red" onclick="hapusRiwayatTotal()">🗑️ Hapus Riwayat Total</button>
+    <!-- Tombol Sembunyikan Input (Biar Layar Lega) -->
+    <div style="text-align: center; margin-bottom: 15px;">
+        <button id="btnToggleInput" class="btn btn-blue" style="border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);" onclick="toggleInputSection()">👁️ Sembunyikan Kotak Input Teks</button>
     </div>
 
+    <!-- AREA INPUT TEKS -->
+    <div id="inputSection" class="input-section">
+        <label for="inputData">Masukkan Semua Data Mentah WhatsApp:</label>
+        <textarea id="inputData" placeholder="Paste baris chat WhatsApp di sini..."></textarea>
+
+        <div class="toolbar">
+            <button class="btn btn-blue" onclick="susunSemua()">⚙️ Susun Semua</button>
+            <button class="btn btn-cyan" onclick="tambahKeAntrean()">➕ Tambah Data</button>
+            <button class="btn btn-gray" onclick="kosongkanInput()">✖️ Kosongkan Input</button>
+            <button class="btn btn-orange" style="font-weight:800; background:#d97706; box-shadow:0 0 10px rgba(217,119,6,0.5);" onclick="salinAntreanSelanjutnya()">📋 Salin Antrean Aktif</button>
+            <button class="btn btn-green" onclick="salinSemuaMassal()">📋 Salin Semua</button>
+            <button class="btn btn-gray" onclick="downloadTXTMassal()">💾 Download TXT</button>
+            <button class="btn btn-orange" onclick="restoreData()">↩ Restore Backup</button>
+            <button class="btn btn-red" onclick="hapusRiwayatTotal()">🗑️ Hapus Riwayat</button>
+        </div>
+    </div>
+
+    <!-- AREA PENGATURAN FILTER & PROVINSI -->
     <div id="searchArea" class="search-area" style="display: none;">
         <div class="filter-row">
-            <div class="filter-col w-search">
-                <label for="searchFilter">🔍 Live Pencarian Cepat:</label>
-                <input type="text" id="searchFilter" class="search-input" placeholder="Ketik nama orang atau nomor NIK untuk menyaring...">
+            <div class="filter-col">
+                <label for="searchFilter">🔍 Pencarian Nama / NIK:</label>
+                <input type="text" id="searchFilter" class="search-input" placeholder="Ketik nama orang atau NIK...">
             </div>
-            <div class="filter-col w-sort">
-                <label for="sortFilter">🔀 Urutkan Barisan Data:</label>
+            <div class="filter-col">
+                <label for="sortFilter">🔀 Urutkan Barisan:</label>
                 <select id="sortFilter" class="search-input" onchange="eksekusiPengurutan()">
-                    <option value="default">Sesuai Urutan Input (Asli)</option>
+                    <option value="default">Sesuai Urutan Input</option>
                     <option value="nama-az">Nama Lengkap (A - Z)</option>
-                    <option value="nik-asc">Nomor NIK (Terkecil → Terbesar)</option>
+                    <option value="nik-asc">Nomor NIK (Kecil → Besar)</option>
                 </select>
+            </div>
+        </div>
+
+        <!-- FITUR BARU: CHIP FILTER PROVINSI (BISA DIGESER) -->
+        <div style="margin-top: 15px; padding-top: 15px; border-top: 2px dashed #cbd5e1;">
+            <label style="color:#dc2626;">🗺️ Filter Provinsi / Wilayah (Bisa digeser <->):</label>
+            <div id="prioChipsContainer" class="chip-scroll-container">
+                <!-- Chip Provinsi Otomatis Muncul Disini -->
             </div>
         </div>
     </div>
@@ -397,22 +455,15 @@
 
     <!-- RUANG KERJA UTAMA (DIPISAH TIGA TAB) -->
     <div id="ruangKerja" style="display: none;">
-        
-        <!-- ZONA 1: AKTIF -->
         <div id="zonaAktif" class="tab-content active">
             <div id="wrapperAktif" class="columns-wrapper"></div>
         </div>
-
-        <!-- ZONA 2: SELESAI -->
         <div id="zonaSelesai" class="tab-content">
             <div id="wrapperSelesai" class="columns-wrapper"></div>
         </div>
-
-        <!-- ZONA 3: TONG SAMPAH -->
         <div id="zonaSampah" class="tab-content">
             <div id="wrapperSampah" class="columns-wrapper"></div>
         </div>
-
     </div>
 
 </div>
@@ -421,42 +472,69 @@
     let backupData = { input: "", columns: [] };
     let historiPerKartu = {}; 
     let tabSaatIni = 'aktif';
+    let filterProvinsiAktif = ""; 
+    let statusInputHidden = false; 
+
+    // --- MINI DATABASE AI (PETA PROVINSI) ---
+    const petaProvinsi = {
+        "JAWA BARAT": ["INDRAMAYU", "CIREBON", "MAJALENGKA", "KUNINGAN", "BANDUNG", "BOGOR", "BEKASI", "DEPOK", "SUKABUMI", "CIANJUR", "GARUT", "TASIKMALAYA", "CIAMIS", "BANJAR", "PANGANDARAN", "PURWAKARTA", "SUBANG", "KARAWANG", "SUMEDANG", "CIMAHI"],
+        "JAWA TENGAH": ["KEBUMEN", "CILACAP", "BANYUMAS", "PURBALINGGA", "BANJARNEGARA", "WONOSOBO", "MAGELANG", "BOYOLALI", "KLATEN", "SUKOHARJO", "WONOGIRI", "KARANGANYAR", "SRAGEN", "GROBOGAN", "BLORA", "REMBANG", "PATI", "KUDUS", "JEPARA", "DEMAK", "SEMARANG", "TEMANGGUNG", "KENDAL", "BATANG", "PEKALONGAN", "PEMALANG", "TEGAL", "BREBES", "SALATIGA", "SURAKARTA"],
+        "JAWA TIMUR": ["SURABAYA", "MALANG", "SIDOARJO", "GRESIK", "MOJOKERTO", "PASURUAN", "PROBOLINGGO", "JEMBER", "BANYUWANGI", "KEDIRI", "MADIUN", "BLITAR", "TUBAN", "BOJONEGORO", "NGAWI", "MAGETAN", "PONOROGO", "PACITAN", "TRENGGALEK", "TULUNGAGUNG", "LUMAJANG", "BONDOWOSO", "SITUBONDO", "BANGKALAN", "SAMPANG", "PAMEKASAN", "SUMENEP"],
+        "BANTEN": ["TANGERANG", "SERANG", "LEBAK", "PANDEGLANG", "CILEGON"],
+        "DKI JAKARTA": ["JAKARTA", "KEPULAUAN SERIBU"],
+        "DI YOGYAKARTA": ["YOGYAKARTA", "SLEMAN", "BANTUL", "GUNUNGKIDUL", "KULON PROGO"]
+    };
+
+    function tebakProvinsi(kabupatenRaw) {
+        let kab = kabupatenRaw.toUpperCase().trim();
+        for (let prov in petaProvinsi) {
+            if (petaProvinsi[prov].some(k => kab.includes(k))) {
+                return prov;
+            }
+        }
+        return kab; 
+    }
+
+    function toggleInputSection() {
+        const section = document.getElementById('inputSection');
+        const btn = document.getElementById('btnToggleInput');
+        
+        if (statusInputHidden) {
+            section.classList.remove('hidden');
+            btn.innerText = '👁️ Sembunyikan Kotak Input Teks';
+            btn.style.background = '#2563eb';
+            statusInputHidden = false;
+        } else {
+            section.classList.add('hidden');
+            btn.innerText = '👁️ Tampilkan Kotak Input Teks';
+            btn.style.background = '#0f172a';
+            statusInputHidden = true;
+        }
+    }
 
     window.onload = () => {
-        // Mengingat Tab Terakhir yang dibuka
-        if (localStorage.getItem('savedTab')) {
-            gantiTab(localStorage.getItem('savedTab'));
-        } else {
-            gantiTab('aktif');
-        }
-
-        if (localStorage.getItem('savedInput')) {
-            document.getElementById('inputData').value = localStorage.getItem('savedInput');
-        }
+        if (localStorage.getItem('savedTab')) gantiTab(localStorage.getItem('savedTab'));
+        if (localStorage.getItem('savedInput')) document.getElementById('inputData').value = localStorage.getItem('savedInput');
         if (localStorage.getItem('savedColumnsArray')) {
             const savedArr = JSON.parse(localStorage.getItem('savedColumnsArray'));
-            buatElemenKolom(savedArr);
-            saringKartuLaporan();
+            buatElemenKolom(savedArr); 
+            eksekusiPengurutan();
         }
         document.getElementById('searchFilter').addEventListener('input', saringKartuLaporan);
     };
 
-    // FUNGSI BERPINDAH RUANG TAB
     function gantiTab(namaTab) {
         tabSaatIni = namaTab;
         localStorage.setItem('savedTab', namaTab);
         
-        // Reset warna semua tombol tab
         document.getElementById('tabBtnAktif').className = 'tab-btn';
         document.getElementById('tabBtnSelesai').className = 'tab-btn';
         document.getElementById('tabBtnSampah').className = 'tab-btn';
         
-        // Sembunyikan semua ruangan
         document.getElementById('zonaAktif').classList.remove('active');
         document.getElementById('zonaSelesai').classList.remove('active');
         document.getElementById('zonaSampah').classList.remove('active');
         
-        // Tampilkan ruangan yang dipilih saja
         if(namaTab === 'aktif') {
             document.getElementById('tabBtnAktif').classList.add('active-tab-aktif');
             document.getElementById('zonaAktif').classList.add('active');
@@ -467,6 +545,11 @@
             document.getElementById('tabBtnSampah').classList.add('active-tab-sampah');
             document.getElementById('zonaSampah').classList.add('active');
         }
+        
+        if(localStorage.getItem('savedColumnsArray')) {
+            renderPrioChips(JSON.parse(localStorage.getItem('savedColumnsArray')));
+        }
+        saringKartuLaporan(); 
     }
 
     function simpanKeStorage() {
@@ -480,6 +563,7 @@
                 status: box.getAttribute('data-status'),
                 nama: box.getAttribute('data-nama'),
                 nik: box.getAttribute('data-nik'),
+                provinsi: box.getAttribute('data-provinsi'), 
                 index: parseInt(box.getAttribute('data-index') || 0, 10),
                 done: cardParent.classList.contains('is-done'),
                 deleted: cardParent.classList.contains('is-deleted'),
@@ -496,19 +580,69 @@
         if (!dateStr) return "";
         let parts = dateStr.split('-');
         if (parts.length !== 3) return dateStr;
-        
         let dayStr = parts[0]; 
         let month = parseInt(parts[1], 10);
         let year = parseInt(parts[2], 10);
-        
         month = month - 1;
-        if (month === 0) {
-            month = 12;      
-            year = year - 1; 
-        }
+        if (month === 0) { month = 12; year = year - 1; }
+        return `${dayStr}-${month < 10 ? '0' + month : month}-${year}`;
+    }
+
+    function renderPrioChips(dataArray) {
+        const container = document.getElementById('prioChipsContainer');
+        if (!container) return;
+
+        let perhitunganProvinsi = {};
+
+        dataArray.forEach(item => {
+            let hitungData = false;
+            if (tabSaatIni === 'aktif' && !item.done && !item.deleted) hitungData = true;
+            if (tabSaatIni === 'selesai' && item.done && !item.deleted) hitungData = true;
+            if (tabSaatIni === 'sampah' && item.deleted) hitungData = true;
+
+            if (hitungData && item.provinsi) {
+                if (!perhitunganProvinsi[item.provinsi]) perhitunganProvinsi[item.provinsi] = 0;
+                perhitunganProvinsi[item.provinsi]++;
+            }
+        });
+
+        container.innerHTML = '';
         
-        let monthStr = month < 10 ? '0' + month : month;
-        return `${dayStr}-${monthStr}-${year}`;
+        let jumlahProvinsi = Object.keys(perhitunganProvinsi).length;
+        if (jumlahProvinsi === 0) {
+            container.innerHTML = '<span style="color:#64748b; font-size:13px; font-style:italic;">Belum ada data di ruang ini...</span>';
+            return;
+        }
+
+        let btnSemua = document.createElement('button');
+        btnSemua.className = (filterProvinsiAktif === "") ? 'prio-chip active' : 'prio-chip';
+        btnSemua.innerText = "SEMUA DAERAH";
+        btnSemua.onclick = () => {
+            filterProvinsiAktif = "";
+            renderPrioChips(JSON.parse(localStorage.getItem('savedColumnsArray')));
+            saringKartuLaporan();
+        };
+        container.appendChild(btnSemua);
+
+        Object.keys(perhitunganProvinsi).sort().forEach(prov => {
+            let total = perhitunganProvinsi[prov];
+            let btn = document.createElement('button');
+            let isActive = (filterProvinsiAktif === prov);
+            
+            btn.className = isActive ? 'prio-chip active' : 'prio-chip';
+            btn.innerText = `${prov} (${total})`;
+            
+            btn.onclick = () => {
+                if (filterProvinsiAktif === prov) {
+                    filterProvinsiAktif = ""; 
+                } else {
+                    filterProvinsiAktif = prov; 
+                }
+                renderPrioChips(JSON.parse(localStorage.getItem('savedColumnsArray')));
+                saringKartuLaporan(); 
+            };
+            container.appendChild(btn);
+        });
     }
 
     function prosesTextMentah(inputString, indexMulai) {
@@ -523,13 +657,14 @@
 
         while ((matchBlok = regexBlok.exec(inputString)) !== null) {
             let data = {};
-            data.wilayah = `*${matchBlok[1].trim()}, ${matchBlok[2].trim()}, ${matchBlok[3].trim()}*`;
+            let kabLengkap = matchBlok[1].trim(); 
+            data.wilayah = `*${kabLengkap}, ${matchBlok[2].trim()}, ${matchBlok[3].trim()}*`;
+            data.provinsi = tebakProvinsi(kabLengkap); 
+
             data.nik = matchBlok[4].trim();
             data.nama = matchBlok[5].trim();
-            
             let rawGender = matchBlok[6].toUpperCase();
             data.gender = (rawGender.includes('L') || rawGender.includes('PRIA')) ? 'PRIA' : 'WANITA';
-            
             data.tglLahir = matchBlok[7].trim();
             data.status = matchBlok[8].trim(); 
             data.id1 = matchBlok[9].trim();
@@ -554,7 +689,8 @@
                 index: counterIndex++, 
                 status: data.status,
                 nama: data.nama,      
-                nik: data.nik,        
+                nik: data.nik,
+                provinsi: data.provinsi,
                 done: false, 
                 deleted: false,
                 selected: true, 
@@ -586,10 +722,11 @@
                 data.amount = parseInt(cols[7] || "0", 10).toLocaleString('id-ID');
                 data.company = cols[8];
                 data.endDate = kurangiSatuBulan(cols[10]); 
-                data.wilayah = `*${cols[11]}, ${cols[12]}, ${cols[13]}*`;
+                let kabLengkap = cols[11];
+                data.wilayah = `*${kabLengkap}, ${cols[12]}, ${cols[13]}*`;
+                data.provinsi = tebakProvinsi(kabLengkap);
             } else {
                 let match = cleanLine.match(/^(\d+)\s+(\d+)\s+(\d+)\s+(.*?)\s+(\d{2}-\d{2}-\d{4})\s*(L|P|l|p)\s*(\d+)\s+(\d+)\s+(.*?)\s+(\d{2}-\d{2}-\d{4})\s+(\d{2}-\d{2}-\d{4})\s+(.*?)(?:\s+success)?$/i);
-                
                 if (match) {
                     data.id1 = match[2];
                     data.nik = match[3];
@@ -602,6 +739,9 @@
                     data.endDate = kurangiSatuBulan(match[11]); 
                     let wilayahRaw = match[12];
                     data.wilayah = wilayahRaw.includes('  ') ? `*${wilayahRaw.replace(/\s{2,}/g, ', ')}*` : `*${wilayahRaw}*`;
+                    
+                    let parts = wilayahRaw.split(/[, ]+/);
+                    data.provinsi = tebakProvinsi(parts[0]); 
                 } else {
                     errorLines.push(i + 1);
                     continue; 
@@ -623,7 +763,8 @@
                 index: counterIndex++, 
                 status: data.status,
                 nama: data.nama,      
-                nik: data.nik,        
+                nik: data.nik,
+                provinsi: data.provinsi,
                 done: false, 
                 deleted: false,
                 selected: true, 
@@ -631,16 +772,14 @@
             });
         }
 
-        if (errorLines.length > 0) {
-            alert(`⚠️ Perhatian: Beberapa teks gagal diproses karena format tidak dikenali.`);
-        }
-        
+        if (errorLines.length > 0) alert(`⚠️ Beberapa teks gagal diproses (format tidak dikenali).`);
         return rawProcessedArray;
     }
 
     function susunSemua() {
         document.getElementById('searchFilter').value = '';
         document.getElementById('sortFilter').value = 'default';
+        filterProvinsiAktif = ""; 
         
         const input = document.getElementById('inputData').value;
         const arrayBaru = prosesTextMentah(input, 0);
@@ -650,27 +789,26 @@
             return;
         }
 
-        gantiTab('aktif'); // Otomatis pindah ke tab aktif jika baru susun data
+        gantiTab('aktif'); 
         buatElemenKolom(arrayBaru);
         simpanKeStorage();
-        saringKartuLaporan();
+        eksekusiPengurutan(); 
+        
+        if (!statusInputHidden) toggleInputSection();
     }
 
     function tambahKeAntrean() {
         const input = document.getElementById('inputData').value;
         if (!input.trim()) {
-            alert("⚠️ Kotak input kosong! Silakan tempelkan data baru terlebih dahulu.");
+            alert("⚠️ Kotak input kosong! Paste data baru terlebih dahulu.");
             return;
         }
 
         simpanKeStorage();
-
         let dataLamaArray = JSON.parse(localStorage.getItem('savedColumnsArray')) || [];
         
         let indexTertinggi = -1;
-        dataLamaArray.forEach(item => {
-            if (item.index > indexTertinggi) indexTertinggi = item.index;
-        });
+        dataLamaArray.forEach(item => { if (item.index > indexTertinggi) indexTertinggi = item.index; });
 
         const arrayTambahan = prosesTextMentah(input, indexTertinggi + 1);
 
@@ -681,14 +819,15 @@
 
         const gabunganArray = dataLamaArray.concat(arrayTambahan);
 
-        gantiTab('aktif'); // Otomatis kembali ke ruang utama agar data baru terlihat
+        gantiTab('aktif'); 
         buatElemenKolom(gabunganArray);
         document.getElementById('inputData').value = '';
         
         simpanKeStorage();
         eksekusiPengurutan();
         
-        tampilkanToast(`✔️ ${arrayTambahan.length} Data baru berhasil ditambahkan ke antrean!`, "#0284c7");
+        tampilkanToast(`✔️ ${arrayTambahan.length} Data baru berhasil ditambahkan!`, "#0284c7");
+        if (!statusInputHidden) toggleInputSection(); 
     }
 
     function kosongkanInput() {
@@ -701,10 +840,14 @@
         const semuaKartu = document.querySelectorAll('.data-column');
         
         semuaKartu.forEach(kartu => {
-            const isiTeksKartu = kartu.querySelector('.output-box').value.toLowerCase();
+            const kotakTeks = kartu.querySelector('.output-box');
+            const isiTeksKartu = kotakTeks.value.toLowerCase();
+            const provKartu = kotakTeks.getAttribute('data-provinsi');
+
             let lolosTeks = isiTeksKartu.includes(kataKunci);
+            let lolosProvinsi = (filterProvinsiAktif === "") ? true : (provKartu === filterProvinsiAktif);
             
-            if (lolosTeks) {
+            if (lolosTeks && lolosProvinsi) {
                 kartu.style.display = 'inline-block';
             } else {
                 kartu.style.display = 'none';
@@ -713,17 +856,19 @@
     }
 
     function eksekusiPengurutan() {
-        simpanKeStorage();
+        simpanKeStorage(); 
         const aturanSort = document.getElementById('sortFilter').value;
         let dataArray = JSON.parse(localStorage.getItem('savedColumnsArray')) || [];
         
-        if (aturanSort === 'nama-az') {
-            dataArray.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
-        } else if (aturanSort === 'nik-asc') {
-            dataArray.sort((a, b) => (a.nik || '').localeCompare(b.nik || ''));
-        } else if (aturanSort === 'default') {
-            dataArray.sort((a, b) => a.index - b.index);
-        }
+        dataArray.sort((a, b) => {
+            if (aturanSort === 'nama-az') {
+                return (a.nama || '').localeCompare(b.nama || '');
+            } else if (aturanSort === 'nik-asc') {
+                return (a.nik || '').localeCompare(b.nik || '');
+            } else {
+                return a.index - b.index; 
+            }
+        });
         
         buatElemenKolom(dataArray);
         saringKartuLaporan();
@@ -736,12 +881,12 @@
         
         let dataArray = JSON.parse(localStorage.getItem('savedColumnsArray')) || [];
         buatElemenKolom(dataArray);
-        saringKartuLaporan();
+        eksekusiPengurutan();
+        renderPrioChips(dataArray); 
     }
 
     function rubahStatusSampah(btnElement, perintah) {
         simpanKeStorage(); 
-        
         const kartuInduk = btnElement.closest('.data-column');
         const idx = parseInt(kartuInduk.querySelector('.output-box').getAttribute('data-index'), 10);
         let dataArray = JSON.parse(localStorage.getItem('savedColumnsArray')) || [];
@@ -749,7 +894,7 @@
         
         if (indexTarget !== -1) {
             if (perintah === 'hapus_permanen') {
-                let konfirmasi = confirm("Yakin ingin menghapus data ini secara permanen? Tidak bisa dikembalikan lagi.");
+                let konfirmasi = confirm("Yakin ingin menghapus data ini secara permanen?");
                 if(konfirmasi) dataArray.splice(indexTarget, 1);
             } else if (perintah === 'buang') {
                 dataArray[indexTarget].deleted = true;
@@ -761,7 +906,8 @@
             
             localStorage.setItem('savedColumnsArray', JSON.stringify(dataArray));
             buatElemenKolom(dataArray);
-            saringKartuLaporan();
+            eksekusiPengurutan();
+            renderPrioChips(dataArray);
         }
     }
 
@@ -818,13 +964,16 @@
         wrapperSelesai.innerHTML = ''; 
         wrapperSampah.innerHTML = ''; 
 
+        // RENDER CHIPS PROVINSI
+        renderPrioChips(dataArray);
+
         if (dataArray.length > 0) {
             searchArea.style.display = 'block';
-            tabContainer.style.display = 'flex'; // Tampilkan menu tab
+            tabContainer.style.display = 'flex'; 
             ruangKerja.style.display = 'block';
         } else {
             searchArea.style.display = 'none';
-            tabContainer.style.display = 'none'; // Sembunyikan menu tab jika kosong
+            tabContainer.style.display = 'none'; 
             ruangKerja.style.display = 'none';
         }
 
@@ -837,7 +986,7 @@
             const colNumber = itemIndex + 1; 
             
             initHistoriKartu(itemIndex, item.text);
-            
+
             const divCol = document.createElement('div');
             
             if (item.deleted) {
@@ -870,7 +1019,7 @@
                 `;
             } else {
                 let textTombolDone = item.done ? '↩ Buka Tanda' : '✔️ Selesai';
-                let kelasTombolDone = item.done ? 'btn btn-uncheck' : 'btn btn-check';
+                let kelasTombolDone = item.done ? 'btn btn-status-undone' : 'btn btn-status-done';
                 let isChecked = item.selected ? 'checked' : '';
                 
                 queueCheckHTML = `
@@ -887,11 +1036,13 @@
                 `;
             }
 
+            let nmProvinsi = item.provinsi || "Provinsi Lainnya";
+
             divCol.innerHTML = `
                 <div class="col-title ${titleClass}">${titleLabel}</div>
                 ${queueCheckHTML}
                 ${actionHTML}
-                <textarea class="output-box" data-status="${item.status}" data-nama="${item.nama || ''}" data-nik="${item.nik || ''}" data-index="${itemIndex}">${item.text}</textarea>
+                <textarea class="output-box" data-status="${item.status}" data-provinsi="${nmProvinsi}" data-nama="${item.nama || ''}" data-nik="${item.nik || ''}" data-index="${itemIndex}">${item.text}</textarea>
                 
                 <div class="edit-toolbar">
                     <button onclick="undoTeksKartu(this)">↺ Undo Teks</button>
@@ -899,7 +1050,6 @@
                 </div>
             `;
             
-            // PISAHKAN BERDASARKAN ZONA TAB
             if (item.deleted) {
                 wrapperSampah.appendChild(divCol);
                 jumlahSampah++;
@@ -912,7 +1062,6 @@
             }
         });
 
-        // UPDATE ANGKA PADA TOMBOL TAB
         document.getElementById('hitungAktif').innerText = jumlahAktif;
         document.getElementById('hitungSelesai').innerText = jumlahSelesai;
         document.getElementById('hitungSampah').innerText = jumlahSampah;
@@ -971,7 +1120,7 @@
         const semuaAntrean = document.querySelectorAll('#zonaAktif .send-queue-check:checked'); 
         
         if (semuaAntrean.length === 0) {
-            tampilkanToast("⚠️ Antrean habis atau tidak ada data di ruang utama yang dicentang!", "#dc2626");
+            tampilkanToast("⚠️ Antrean habis atau tidak ada data aktif yang dicentang!", "#dc2626");
             return;
         }
 
@@ -991,7 +1140,8 @@
             
             let dataArray = JSON.parse(localStorage.getItem('savedColumnsArray')) || [];
             buatElemenKolom(dataArray);
-            saringKartuLaporan(); 
+            eksekusiPengurutan(); 
+            renderPrioChips(dataArray);
         }, () => {
             alert("Sistem HP Anda menolak akses salin otomatis.");
         });
@@ -1012,14 +1162,17 @@
 
     function salinSemuaMassal() {
         let gabunganSeluruhnya = [];
-        document.querySelectorAll('#zonaAktif .output-box, #zonaSelesai .output-box').forEach((box, i) => {
-            gabunganSeluruhnya.push(`=== KOLOM ${i+1} ===\n${box.value}`);
+        document.querySelectorAll('.data-column').forEach((kartu, i) => {
+            if (kartu.style.display !== 'none' && !kartu.classList.contains('is-deleted')) {
+                let box = kartu.querySelector('.output-box');
+                if(box) gabunganSeluruhnya.push(`=== KOLOM ===\n${box.value}`);
+            }
         });
 
         if (gabunganSeluruhnya.length === 0) return alert("Kosong! Selesaikan penyusunan terlebih dahulu.");
         
         salinTeksAman(gabunganSeluruhnya.join('\n\n\n'), () => {
-            alert("Seluruh isi kotak yang bukan sampah telah berhasil disalin massal!");
+            alert("Seluruh isi kotak data (sesuai filter) telah berhasil disalin massal!");
         }, () => {
             alert("Gagal menyalin data massal.");
         });
@@ -1035,8 +1188,11 @@
 
     function downloadTXTMassal() {
         let gabunganSeluruhnya = [];
-        document.querySelectorAll('#zonaAktif .output-box, #zonaSelesai .output-box').forEach((box, i) => {
-            gabunganSeluruhnya.push(`=== KOLOM ${i+1} ===\n${box.value}`);
+        document.querySelectorAll('.data-column').forEach((kartu, i) => {
+            if (kartu.style.display !== 'none' && !kartu.classList.contains('is-deleted')) {
+                let box = kartu.querySelector('.output-box');
+                if(box) gabunganSeluruhnya.push(`=== KOLOM ===\n${box.value}`);
+            }
         });
 
         if (gabunganSeluruhnya.length === 0) return alert("Tidak ada data untuk diunduh!");
@@ -1055,7 +1211,7 @@
         backupData.columns = [];
         document.querySelectorAll('.output-box').forEach(box => {
             const cardParent = box.parentElement;
-            backupData.columns.push({ status: box.getAttribute('data-status'), nama: box.getAttribute('data-nama'), nik: box.getAttribute('data-nik'), index: box.getAttribute('data-index'), done: cardParent.classList.contains('is-done'), deleted: cardParent.classList.contains('is-deleted'), text: box.value });
+            backupData.columns.push({ status: box.getAttribute('data-status'), nama: box.getAttribute('data-nama'), nik: box.getAttribute('data-nik'), provinsi: box.getAttribute('data-provinsi'), index: box.getAttribute('data-index'), done: cardParent.classList.contains('is-done'), deleted: cardParent.classList.contains('is-deleted'), text: box.value });
         });
 
         document.getElementById('inputData').value = '';
@@ -1065,10 +1221,13 @@
         document.getElementById('tabContainer').style.display = 'none';
         document.getElementById('ruangKerja').style.display = 'none';
         
+        filterProvinsiAktif = ""; 
         localStorage.removeItem('savedTab');
         localStorage.removeItem('savedColumnsArray');
         localStorage.removeItem('savedInput');
         historiPerKartu = {}; 
+        
+        if(statusInputHidden) toggleInputSection();
     }
 
     function restoreData() {
@@ -1079,7 +1238,7 @@
         document.getElementById('inputData').value = backupData.input;
         buatElemenKolom(backupData.columns);
         simpanKeStorage();
-        saringKartuLaporan();
+        eksekusiPengurutan();
     }
 </script>
 
