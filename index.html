@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ByDataKu Full Auto Detect - V27.2 (Ultimate Auto Sync)</title>
+    <title>ByDataKu Full Auto Detect - V27.8 (Filter PT & Sort Saldo)</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -11,6 +11,8 @@
             --danger: #dc2626;
             --warning: #d97706;
             --whatsapp: #25d366;
+            --excel: #107c41;
+            --company: #8b5cf6; /* Warna ungu untuk filter perusahaan */
             --dark: #000000;
             --light: #f1f5f9;
             --border: #000000;
@@ -61,7 +63,6 @@
             margin-bottom: 8px;
         }
 
-        /* Mode Sembunyikan Input Box */
         .input-section {
             transition: all 0.3s ease;
             overflow: hidden;
@@ -113,6 +114,7 @@
         .btn-blue { background: var(--primary); }
         .btn-cyan { background: #0284c7; }
         .btn-green { background: var(--success); }
+        .btn-excel { background: var(--excel); }
         .btn-gray { background: #475569; }
         .btn-orange { background: var(--warning); }
         .btn-red { background: var(--danger); }
@@ -154,7 +156,7 @@
         }
         .filter-col {
             flex: 1;
-            min-width: 250px;
+            min-width: 200px;
         }
         .search-input {
             width: 100%;
@@ -167,46 +169,11 @@
             color: #000000;
             box-sizing: border-box;
             background-color: #ffffff;
+            cursor: pointer;
         }
         .search-input:focus {
             outline: none;
             border-color: var(--primary);
-        }
-
-        .chip-scroll-container {
-            display: flex;
-            gap: 10px;
-            overflow-x: auto; 
-            padding-bottom: 8px; 
-            white-space: nowrap;
-            scrollbar-width: none; 
-        }
-        .chip-scroll-container::-webkit-scrollbar {
-            display: none; 
-        }
-        .prio-chip {
-            padding: 8px 16px;
-            font-size: 13px;
-            font-weight: 800;
-            background: #ffffff;
-            color: #0f172a;
-            border: 2px solid #cbd5e1;
-            border-radius: 30px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            flex-shrink: 0; 
-        }
-        .prio-chip:hover {
-            background: #e2e8f0;
-            border-color: #94a3b8;
-        }
-        .prio-chip.active {
-            background: #0f172a;
-            color: #ffffff;
-            border-color: #0f172a;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            transform: scale(1.05);
         }
 
         .tab-container {
@@ -257,6 +224,12 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             transition: all 0.3s ease;
             position: relative; 
+        }
+
+        .data-column.is-duplicate {
+            border-color: var(--danger) !important;
+            background-color: #fef2f2 !important;
+            box-shadow: 0 0 10px rgba(220, 38, 38, 0.3);
         }
         
         .data-column.is-done {
@@ -345,6 +318,26 @@
             vertical-align: middle;
             cursor: pointer;
         }
+        
+        .duplicate-msg {
+            text-align: center;
+            background: #fef2f2;
+            color: var(--danger);
+            padding: 6px;
+            font-weight: 900;
+            font-size: 12px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border: 2px dashed #f87171;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
         .deleted-msg {
             text-align: center;
             color: var(--danger);
@@ -382,6 +375,7 @@
             .data-column { width: 98%; margin: 3% 0; }
             .btn { flex: 1 1 calc(50% - 10px); text-align: center; }
             .tab-btn { font-size: 13px; padding: 10px 2px; }
+            .filter-col { min-width: 100%; }
         }
     </style>
 </head>
@@ -392,7 +386,7 @@
 <div class="container">
     <div class="header">
         <h1>❤️ ByDataKu Full Auto Detect</h1>
-        <p>🧠 V27.2 - Fitur Gabungan: Auto-NIK & Pengaman Hapus</p>
+        <p>🧠 V27.8 - Filter PT, Sort Saldo & Anti-Ganda</p>
     </div>
     
     <div style="text-align: center; margin-bottom: 15px;">
@@ -406,37 +400,47 @@
         <div class="toolbar">
             <button class="btn btn-blue" onclick="susunSemua()">⚙️ Susun Semua</button>
             <button class="btn btn-cyan" onclick="tambahKeAntrean()">➕ Tambah Data</button>
-            <button class="btn btn-gray" onclick="kosongkanInput()">✖️ Kosongkan Input</button>
-            <button class="btn btn-orange" style="font-weight:800; background:#d97706; box-shadow:0 0 10px rgba(217,119,6,0.5);" onclick="salinAntreanSelanjutnya()">📋 Salin Antrean Aktif</button>
-            <button class="btn btn-green" onclick="salinSemuaMassal()">📋 Salin Semua</button>
+            <button class="btn btn-orange" style="font-weight:800; box-shadow:0 0 10px rgba(217,119,6,0.5);" onclick="salinAntreanSelanjutnya()">📋 Salin Antrean Aktif</button>
+            <button class="btn btn-excel" onclick="downloadCSV()">📊 Download Excel (CSV)</button>
             <button class="btn btn-gray" onclick="downloadTXTMassal()">💾 Download TXT</button>
             <button class="btn btn-orange" onclick="restoreData()">↩ Restore Backup</button>
             <button class="btn btn-red" onclick="hapusRiwayatTotal()">🗑️ Hapus Riwayat</button>
         </div>
     </div>
 
+    <!-- AREA PENGATURAN FILTER LANJUTAN -->
     <div id="searchArea" class="search-area" style="display: none;">
         <div class="filter-row">
             <div class="filter-col">
                 <label for="searchFilter">🔍 Pencarian Nama / NIK:</label>
-                <input type="text" id="searchFilter" class="search-input" placeholder="Ketik nama orang atau NIK...">
+                <input type="text" id="searchFilter" class="search-input" placeholder="Ketik nama atau NIK..." style="cursor: text;">
             </div>
             <div class="filter-col">
                 <label for="sortFilter">🔀 Urutkan Barisan:</label>
                 <select id="sortFilter" class="search-input" onchange="eksekusiPengurutan()">
                     <option value="default">Sesuai Urutan Input</option>
+                    <option value="saldo-desc">Saldo (Terbesar → Terkecil) 💰</option>
+                    <option value="saldo-asc">Saldo (Terkecil → Terbesar) 🪙</option>
                     <option value="nama-az">Nama Lengkap (A - Z)</option>
                     <option value="nik-asc">Nomor NIK (Kecil → Besar)</option>
                 </select>
             </div>
-        </div>
-
-        <div style="margin-top: 15px; padding-top: 15px; border-top: 2px dashed #cbd5e1;">
-            <label style="color:#dc2626;">🗺️ Filter Provinsi / Wilayah (Bisa digeser <->):</label>
-            <div id="prioChipsContainer" class="chip-scroll-container"></div>
+            <div class="filter-col">
+                <label style="color:#dc2626;" for="provinsiFilter">🗺️ Filter Daerah:</label>
+                <select id="provinsiFilter" class="search-input" style="border-color: #dc2626; color: #0f172a;" onchange="gantiFilterProvinsi()">
+                    <option value="">-- SEMUA DAERAH --</option>
+                </select>
+            </div>
+            <div class="filter-col">
+                <label style="color:var(--company);" for="companyFilter">🏢 Filter Perusahaan (PT):</label>
+                <select id="companyFilter" class="search-input" style="border-color: var(--company); color: #0f172a;" onchange="gantiFilterCompany()">
+                    <option value="">-- SEMUA PERUSAHAAN --</option>
+                </select>
+            </div>
         </div>
     </div>
 
+    <!-- MENU TAB NAVIGASI -->
     <div id="tabContainer" class="tab-container" style="display: none;">
         <button class="tab-btn active-tab-aktif" id="tabBtnAktif" onclick="gantiTab('aktif')">⏳ Ruang Utama (<span id="hitungAktif">0</span>)</button>
         <button class="tab-btn" id="tabBtnSelesai" onclick="gantiTab('selesai')">✅ Data Selesai (<span id="hitungSelesai">0</span>)</button>
@@ -461,10 +465,18 @@
     let historiPerKartu = {}; 
     let tabSaatIni = 'aktif';
     let filterProvinsiAktif = ""; 
+    let filterCompanyAktif = ""; 
     let statusInputHidden = false; 
-    let dbNIK = {}; // Tempat penyimpanan database NIK ghaib (Auto-Sync)
 
-    // --- MINI DATABASE AI (PETA PROVINSI) ---
+    const dbNIK = {
+        "3171": "KOTA JAKARTA SELATAN", "3172": "KOTA JAKARTA TIMUR", "3173": "KOTA JAKARTA PUSAT", "3174": "KOTA JAKARTA BARAT", "3175": "KOTA JAKARTA UTARA", "3101": "KABUPATEN KEPULAUAN SERIBU",
+        "3201": "KABUPATEN BOGOR", "3202": "KABUPATEN SUKABUMI", "3203": "KABUPATEN CIANJUR", "3204": "KABUPATEN BANDUNG", "3205": "KABUPATEN GARUT", "3206": "KABUPATEN TASIKMALAYA", "3207": "KABUPATEN CIAMIS", "3208": "KABUPATEN KUNINGAN", "3209": "KABUPATEN CIREBON", "3210": "KABUPATEN MAJALENGKA", "3211": "KABUPATEN SUMEDANG", "3212": "KABUPATEN INDRAMAYU", "3213": "KABUPATEN SUBANG", "3214": "KABUPATEN PURWAKARTA", "3215": "KABUPATEN KARAWANG", "3216": "KABUPATEN BEKASI", "3217": "KABUPATEN BANDUNG BARAT", "3218": "KABUPATEN PANGANDARAN", "3271": "KOTA BOGOR", "3272": "KOTA SUKABUMI", "3273": "KOTA BANDUNG", "3274": "KOTA CIREBON", "3275": "KOTA BEKASI", "3276": "KOTA DEPOK", "3277": "KOTA CIMAHI", "3278": "KOTA TASIKMALAYA", "3279": "KOTA BANJAR",
+        "3601": "KABUPATEN PANDEGLANG", "3602": "KABUPATEN LEBAK", "3603": "KABUPATEN TANGERANG", "3604": "KABUPATEN SERANG", "3671": "KOTA TANGERANG", "3672": "KOTA CILEGON", "3673": "KOTA SERANG", "3674": "KOTA TANGERANG SELATAN",
+        "3301": "KABUPATEN CILACAP", "3302": "KABUPATEN BANYUMAS", "3303": "KABUPATEN PURBALINGGA", "3304": "KABUPATEN BANJARNEGARA", "3305": "KABUPATEN KEBUMEN", "3306": "KABUPATEN PURWOREJO", "3307": "KABUPATEN WONOSOBO", "3308": "KABUPATEN MAGELANG", "3309": "KABUPATEN BOYOLALI", "3310": "KABUPATEN KLATEN", "3311": "KABUPATEN SUKOHARJO", "3312": "KABUPATEN WONOGIRI", "3313": "KABUPATEN KARANGANYAR", "3314": "KABUPATEN SRAGEN", "3315": "KABUPATEN GROBOGAN", "3316": "KABUPATEN BLORA", "3317": "KABUPATEN REMBANG", "3318": "KABUPATEN PATI", "3319": "KABUPATEN KUDUS", "3320": "KABUPATEN JEPARA", "3321": "KABUPATEN DEMAK", "3322": "KABUPATEN SEMARANG", "3323": "KABUPATEN TEMANGGUNG", "3324": "KABUPATEN KENDAL", "3325": "KABUPATEN BATANG", "3326": "KABUPATEN PEKALONGAN", "3327": "KABUPATEN PEMALANG", "3328": "KABUPATEN TEGAL", "3329": "KABUPATEN BREBES", "3371": "KOTA MAGELANG", "3372": "KOTA SURAKARTA", "3373": "KOTA SALATIGA", "3374": "KOTA SEMARANG", "3375": "KOTA PEKALONGAN", "3376": "KOTA TEGAL",
+        "3401": "KABUPATEN KULON PROGO", "3402": "KABUPATEN BANTUL", "3403": "KABUPATEN GUNUNGKIDUL", "3404": "KABUPATEN SLEMAN", "3471": "KOTA YOGYAKARTA",
+        "3501": "KABUPATEN PACITAN", "3502": "KABUPATEN PONOROGO", "3503": "KABUPATEN TRENGGALEK", "3504": "KABUPATEN TULUNGAGUNG", "3505": "KABUPATEN BLITAR", "3506": "KABUPATEN KEDIRI", "3507": "KABUPATEN MALANG", "3508": "KABUPATEN LUMAJANG", "3509": "KABUPATEN JEMBER", "3510": "KABUPATEN BANYUWANGI", "3511": "KABUPATEN BONDOWOSO", "3512": "KABUPATEN SITUBONDO", "3513": "KABUPATEN PROBOLINGGO", "3514": "KABUPATEN PASURUAN", "3515": "KABUPATEN SIDOARJO", "3516": "KABUPATEN MOJOKERTO", "3517": "KABUPATEN JOMBANG", "3518": "KABUPATEN NGANJUK", "3519": "KABUPATEN MADIUN", "3520": "KABUPATEN MAGETAN", "3521": "KABUPATEN NGAWI", "3522": "KABUPATEN BOJONEGORO", "3523": "KABUPATEN TUBAN", "3524": "KABUPATEN LAMONGAN", "3525": "KABUPATEN GRESIK", "3526": "KABUPATEN BANGKALAN", "3527": "KABUPATEN SAMPANG", "3528": "KABUPATEN PAMEKASAN", "3529": "KABUPATEN SUMENEP", "3571": "KOTA KEDIRI", "3572": "KOTA BLITAR", "3573": "KOTA MALANG", "3574": "KOTA PROBOLINGGO", "3575": "KOTA PASURUAN", "3576": "KOTA MOJOKERTO", "3577": "KOTA MADIUN", "3578": "KOTA SURABAYA", "3579": "KOTA BATU"
+    };
+
     const petaProvinsi = {
         "JAWA BARAT": ["INDRAMAYU", "CIREBON", "MAJALENGKA", "KUNINGAN", "BANDUNG", "BOGOR", "BEKASI", "DEPOK", "SUKABUMI", "CIANJUR", "GARUT", "TASIKMALAYA", "CIAMIS", "BANJAR", "PANGANDARAN", "PURWAKARTA", "SUBANG", "KARAWANG", "SUMEDANG", "CIMAHI"],
         "JAWA TENGAH": ["KEBUMEN", "CILACAP", "BANYUMAS", "PURBALINGGA", "BANJARNEGARA", "WONOSOBO", "MAGELANG", "BOYOLALI", "KLATEN", "SUKOHARJO", "WONOGIRI", "KARANGANYAR", "SRAGEN", "GROBOGAN", "BLORA", "REMBANG", "PATI", "KUDUS", "JEPARA", "DEMAK", "SEMARANG", "TEMANGGUNG", "KENDAL", "BATANG", "PEKALONGAN", "PEMALANG", "TEGAL", "BREBES", "SALATIGA", "SURAKARTA"],
@@ -480,19 +492,6 @@
             if (petaProvinsi[prov].some(k => kab.includes(k))) return prov;
         }
         return kab; 
-    }
-
-    // FUNGSI GHAIB: Menyedot database secara silent dari web kodenik
-    function muatDatabaseNIK() {
-        fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://rafa2019-debug.github.io/kodenik/')}`)
-            .then(response => { if (response.ok) return response.json(); })
-            .then(data => {
-                if(data && data.contents) {
-                    let match = data.contents.match(/const\s+db\s*=\s*(\{[\s\S]*?\});/);
-                    if(match) dbNIK = JSON.parse(match[1]); // Berhasil disedot!
-                }
-            })
-            .catch(err => console.log('Sistem berjalan dalam mode offline (Database NIK gagal memuat).'));
     }
 
     function toggleInputSection() {
@@ -513,11 +512,11 @@
     }
 
     window.onload = () => {
-        muatDatabaseNIK(); // Memuat Database NIK otomatis dari background!
-        
         if (localStorage.getItem('savedTab')) gantiTab(localStorage.getItem('savedTab'));
         if (localStorage.getItem('savedFilterProvinsi')) filterProvinsiAktif = localStorage.getItem('savedFilterProvinsi');
+        if (localStorage.getItem('savedFilterCompany')) filterCompanyAktif = localStorage.getItem('savedFilterCompany');
         if (localStorage.getItem('savedInput')) document.getElementById('inputData').value = localStorage.getItem('savedInput');
+        
         if (localStorage.getItem('savedColumnsArray')) {
             const savedArr = JSON.parse(localStorage.getItem('savedColumnsArray'));
             buatElemenKolom(savedArr); 
@@ -550,7 +549,9 @@
         }
         
         if(localStorage.getItem('savedColumnsArray')) {
-            renderPrioChips(JSON.parse(localStorage.getItem('savedColumnsArray')));
+            let dataArr = JSON.parse(localStorage.getItem('savedColumnsArray'));
+            renderProvinsiDropdown(dataArr);
+            renderCompanyDropdown(dataArr);
         }
         saringKartuLaporan(); 
     }
@@ -558,6 +559,7 @@
     function simpanKeStorage() {
         localStorage.setItem('savedInput', document.getElementById('inputData').value);
         localStorage.setItem('savedFilterProvinsi', filterProvinsiAktif);
+        localStorage.setItem('savedFilterCompany', filterCompanyAktif);
 
         let currentColumns = [];
         document.querySelectorAll('.output-box').forEach(box => {
@@ -568,6 +570,8 @@
                 nama: box.getAttribute('data-nama'),
                 nik: box.getAttribute('data-nik'),
                 provinsi: box.getAttribute('data-provinsi'), 
+                company: box.getAttribute('data-company'), 
+                amount: box.getAttribute('data-amount'),
                 index: parseInt(box.getAttribute('data-index') || 0, 10),
                 done: cardParent.classList.contains('is-done'),
                 deleted: cardParent.classList.contains('is-deleted'),
@@ -592,63 +596,69 @@
         return `${dayStr}-${month < 10 ? '0' + month : month}-${year}`;
     }
 
-    function renderPrioChips(dataArray) {
-        const container = document.getElementById('prioChipsContainer');
-        if (!container) return;
+    function renderProvinsiDropdown(dataArray) {
+        const selectBox = document.getElementById('provinsiFilter');
+        if (!selectBox) return;
 
         let perhitunganProvinsi = {};
-
         dataArray.forEach(item => {
-            let hitungData = false;
-            if (tabSaatIni === 'aktif' && !item.done && !item.deleted) hitungData = true;
-            if (tabSaatIni === 'selesai' && item.done && !item.deleted) hitungData = true;
-            if (tabSaatIni === 'sampah' && item.deleted) hitungData = true;
-
+            let hitungData = (tabSaatIni === 'aktif' && !item.done && !item.deleted) || (tabSaatIni === 'selesai' && item.done && !item.deleted) || (tabSaatIni === 'sampah' && item.deleted);
             if (hitungData && item.provinsi) {
-                if (!perhitunganProvinsi[item.provinsi]) perhitunganProvinsi[item.provinsi] = 0;
-                perhitunganProvinsi[item.provinsi]++;
+                perhitunganProvinsi[item.provinsi] = (perhitunganProvinsi[item.provinsi] || 0) + 1;
             }
         });
 
-        container.innerHTML = '';
-        
-        let jumlahProvinsi = Object.keys(perhitunganProvinsi).length;
-        if (jumlahProvinsi === 0) {
-            container.innerHTML = '<span style="color:#64748b; font-size:13px; font-style:italic;">Belum ada data di ruang ini...</span>';
-            return;
-        }
-
-        let btnSemua = document.createElement('button');
-        btnSemua.className = (filterProvinsiAktif === "") ? 'prio-chip active' : 'prio-chip';
-        btnSemua.innerText = "SEMUA DAERAH";
-        btnSemua.onclick = () => {
-            filterProvinsiAktif = "";
-            simpanKeStorage();
-            renderPrioChips(JSON.parse(localStorage.getItem('savedColumnsArray')));
-            saringKartuLaporan();
-        };
-        container.appendChild(btnSemua);
+        let nilaiTersimpan = filterProvinsiAktif;
+        selectBox.innerHTML = '<option value="">-- SEMUA DAERAH --</option>';
+        if (Object.keys(perhitunganProvinsi).length === 0) return;
 
         Object.keys(perhitunganProvinsi).sort().forEach(prov => {
-            let total = perhitunganProvinsi[prov];
-            let btn = document.createElement('button');
-            let isActive = (filterProvinsiAktif === prov);
-            
-            btn.className = isActive ? 'prio-chip active' : 'prio-chip';
-            btn.innerText = `${prov} (${total})`;
-            
-            btn.onclick = () => {
-                if (filterProvinsiAktif === prov) filterProvinsiAktif = ""; 
-                else filterProvinsiAktif = prov; 
-                simpanKeStorage();
-                renderPrioChips(JSON.parse(localStorage.getItem('savedColumnsArray')));
-                saringKartuLaporan(); 
-            };
-            container.appendChild(btn);
+            let opt = document.createElement('option');
+            opt.value = prov;
+            opt.innerText = `${prov} (${perhitunganProvinsi[prov]} Data)`;
+            if (prov === nilaiTersimpan) opt.selected = true;
+            selectBox.appendChild(opt);
         });
     }
 
-    // Fungsi Rapi untuk Membentuk Teks Akhir (Mencegah Kode Berulang)
+    function renderCompanyDropdown(dataArray) {
+        const selectBox = document.getElementById('companyFilter');
+        if (!selectBox) return;
+
+        let perhitunganCompany = {};
+        dataArray.forEach(item => {
+            let hitungData = (tabSaatIni === 'aktif' && !item.done && !item.deleted) || (tabSaatIni === 'selesai' && item.done && !item.deleted) || (tabSaatIni === 'sampah' && item.deleted);
+            if (hitungData && item.company) {
+                let comp = item.company.toUpperCase().trim();
+                perhitunganCompany[comp] = (perhitunganCompany[comp] || 0) + 1;
+            }
+        });
+
+        let nilaiTersimpan = filterCompanyAktif;
+        selectBox.innerHTML = '<option value="">-- SEMUA PERUSAHAAN --</option>';
+        if (Object.keys(perhitunganCompany).length === 0) return;
+
+        Object.keys(perhitunganCompany).sort().forEach(comp => {
+            let opt = document.createElement('option');
+            opt.value = comp;
+            opt.innerText = `${comp} (${perhitunganCompany[comp]} Data)`;
+            if (comp === nilaiTersimpan) opt.selected = true;
+            selectBox.appendChild(opt);
+        });
+    }
+
+    function gantiFilterProvinsi() {
+        filterProvinsiAktif = document.getElementById('provinsiFilter').value;
+        simpanKeStorage();
+        saringKartuLaporan();
+    }
+
+    function gantiFilterCompany() {
+        filterCompanyAktif = document.getElementById('companyFilter').value;
+        simpanKeStorage();
+        saringKartuLaporan();
+    }
+
     function bentukTeksAkhir(data, counterIdx) {
         let blockText = '';
         let statusCode = parseInt(data.status, 10);
@@ -661,61 +671,84 @@
         }
         return {
             index: counterIdx, status: data.status, nama: data.nama, nik: data.nik, provinsi: data.provinsi,
+            company: data.company.toUpperCase().trim(), amount: data.amount, 
             done: false, deleted: false, selected: true, text: blockText
         };
     }
 
     function prosesTextMentah(inputString, indexMulai) {
         let rawProcessedArray = [];
-        let errorLines = [];
         let counterIndex = indexMulai;
         let processedText = inputString;
+
+        const regexUtama = /(\d{16})\s*\n(.+?)\s*\n(.*?)\s*\|\s*(\d{2}-\d{2}-\d{4})\s*\n(?:JUMLAH KPJ:\s*)?(\d+)\s*\n(\d+)\s*\n(.+?)\s*\n(\d{2}-\d{2}-\d{4})\s*\nTOTAL SALDO\s*:\s*(?:Rp)?\s*([\d\.]+)(?:\s*\nJMO)?/gi;
+        
         let matchBlok;
-
-        // TIPE 1: CARI FORMAT LENGKAP (Ada Tulisan 'Kabupaten:')
-        const regexLengkap = /(?:\[.*?\]\s*.*?:)?\s*Kabupaten:\s*(.+?)\s*\nKecamatan:\s*(.+?)\s*\nKelurahan:\s*(.+?)\s*\n+(\d{16})\s*\n(.+?)\s*\n(.*?)\s*\|\s*(\d{2}-\d{2}-\d{4})\s*\nJUMLAH KPJ:\s*(\d+)\s*\n(\d+)\s*\n(.+?)\s*\n(\d{2}-\d{2}-\d{4})\s*\nTOTAL SALDO\s*:\s*Rp\s*([\d\.]+)(?:\s*\nJMO)?/gi;
-        while ((matchBlok = regexLengkap.exec(processedText)) !== null) {
-            let kabLengkap = matchBlok[1].trim(); 
-            let data = {
-                wilayah: `*${kabLengkap}, ${matchBlok[2].trim()}, ${matchBlok[3].trim()}*`,
-                provinsi: tebakProvinsi(kabLengkap), nik: matchBlok[4].trim(), nama: matchBlok[5].trim(),
-                gender: (matchBlok[6].toUpperCase().includes('L') || matchBlok[6].toUpperCase().includes('PRIA')) ? 'PRIA' : 'WANITA',
-                tglLahir: matchBlok[7].trim(), status: matchBlok[8].trim(), id1: matchBlok[9].trim(),
-                company: matchBlok[10].trim(), endDate: kurangiSatuBulan(matchBlok[11].trim()),
-                amount: parseInt(matchBlok[12].trim().replace(/\./g, '') || "0", 10).toLocaleString('id-ID')
-            };
-            rawProcessedArray.push(bentukTeksAkhir(data, counterIndex++));
-            processedText = processedText.replace(matchBlok[0], ''); 
-        }
-
-        // TIPE 2: CARI FORMAT TANPA ALAMAT (Otomatis deteksi dari NIK hasil sinkron)
-        const regexTanpaAlamat = /(?:\[.*?\]\s*.*?:)?\s*(\d{16})\s*\n(.+?)\s*\n(.*?)\s*\|\s*(\d{2}-\d{2}-\d{4})\s*\n(?:JUMLAH KPJ:\s*)?(\d+)\s*\n(\d+)\s*\n(.+?)\s*\n(\d{2}-\d{2}-\d{4})\s*\nTOTAL SALDO\s*:\s*(?:Rp)?\s*([\d\.]+)(?:\s*\nJMO)?/gi;
-        while ((matchBlok = regexTanpaAlamat.exec(processedText)) !== null) {
+        let lastIndex = 0;
+        
+        while ((matchBlok = regexUtama.exec(inputString)) !== null) {
+            let startIndex = matchBlok.index;
+            let textSebelumnya = inputString.substring(lastIndex, startIndex);
+            
+            textSebelumnya = textSebelumnya.replace(/\[.*?\]\s*.*?:\s*/g, '');
+            let barisSebelumnya = textSebelumnya.split('\n').map(b => b.trim()).filter(b => b.length > 0);
+            let kandidatAlamat = barisSebelumnya.slice(-4);
+            
+            let alamatGabungan = kandidatAlamat.join(', ');
+            let wilayahFinal = "";
+            let provFinal = "";
+            
             let nikRaw = matchBlok[1].trim();
             let kodeKab = nikRaw.substring(0, 4);
-            let namaKab = dbNIK[kodeKab] || "Kabupaten Tidak Ditemukan"; // Sinkron NIK otomatis!
+            let namaKab = dbNIK[kodeKab] || "Kabupaten Tidak Ditemukan"; 
             
+            if (alamatGabungan && /\b(kabupaten|kota|kab|kecamatan|kec|desa|kelurahan|kel)\b/i.test(alamatGabungan)) {
+                let alamatBersih = alamatGabungan.replace(/\b(Kabupaten|Kota|Kecamatan|Kelurahan|Desa)\b\s*[:\-]?\s*|\b(Kab|Kec|Kel)\b\.?\s*[:\-]?\s*/gi, '');
+                alamatBersih = alamatBersih.replace(/,\s*,/g, ',').replace(/^,\s*/, '').trim();
+                
+                if (/\b(kabupaten|kota|kab)\b/i.test(alamatGabungan)) {
+                    wilayahFinal = `*${alamatBersih}*`; 
+                } else {
+                    wilayahFinal = `*${namaKab}, ${alamatBersih}*`;
+                }
+                provFinal = tebakProvinsi(wilayahFinal.split(',')[0]);
+                
+            } else {
+                if (kandidatAlamat.length > 0 && kandidatAlamat.join(', ').length < 100) {
+                    wilayahFinal = `*${namaKab}, ${kandidatAlamat.join(', ')}*`;
+                } else {
+                    wilayahFinal = `*${namaKab}*`;
+                }
+                provFinal = tebakProvinsi(namaKab);
+            }
+
             let data = {
-                wilayah: `*${namaKab}*`,
-                provinsi: tebakProvinsi(namaKab), nik: nikRaw, nama: matchBlok[2].trim(),
+                wilayah: wilayahFinal,
+                provinsi: provFinal, 
+                nik: nikRaw, 
+                nama: matchBlok[2].trim(),
                 gender: (matchBlok[3].toUpperCase().includes('L') || matchBlok[3].toUpperCase().includes('PRIA')) ? 'PRIA' : 'WANITA',
-                tglLahir: matchBlok[4].trim(), status: matchBlok[5].trim(), id1: matchBlok[6].trim(),
-                company: matchBlok[7].trim(), endDate: kurangiSatuBulan(matchBlok[8].trim()),
+                tglLahir: matchBlok[4].trim(), 
+                status: matchBlok[5].trim(), 
+                id1: matchBlok[6].trim(),
+                company: matchBlok[7].trim(), 
+                endDate: kurangiSatuBulan(matchBlok[8].trim()),
                 amount: parseInt(matchBlok[9].trim().replace(/\./g, '') || "0", 10).toLocaleString('id-ID')
             };
+            
             rawProcessedArray.push(bentukTeksAkhir(data, counterIndex++));
-            processedText = processedText.replace(matchBlok[0], ''); 
+            lastIndex = regexUtama.lastIndex;
+            
+            let textUtamaBlokIni = matchBlok[0];
+            processedText = processedText.replace(textUtamaBlokIni, ' '.repeat(textUtamaBlokIni.length)); 
         }
 
-        // TIPE 3: FALLBACK (Untuk format manual/spreadsheet)
         const lines = processedText.split('\n');
         for (let i = 0; i < lines.length; i++) {
             let line = lines[i];
             if (!line.trim()) continue;
-
             let cleanLine = line.replace(/^\[.*?\] .*?:\s*/, '').trim();
             if (!cleanLine) continue;
-            
             let data = {};
             let cols = cleanLine.split('\t').map(c => c.trim()).filter(c => c !== '');
             
@@ -739,27 +772,24 @@
                     data.wilayah = wilayahRaw.includes('  ') ? `*${wilayahRaw.replace(/\s{2,}/g, ', ')}*` : `*${wilayahRaw}*`;
                     data.provinsi = tebakProvinsi(wilayahRaw.split(/[, ]+/)[0]); 
                     rawProcessedArray.push(bentukTeksAkhir(data, counterIndex++));
-                } else {
-                    errorLines.push(i + 1);
                 }
             }
         }
 
-        if (errorLines.length > 0) alert(`⚠️ Beberapa baris teks gagal diproses (format tidak dikenali).`);
         return rawProcessedArray;
     }
 
     function susunSemua() {
-        // --- FITUR PENGAMAN ANTI-SALAH KLIK ---
         let dataLamaArray = JSON.parse(localStorage.getItem('savedColumnsArray')) || [];
         if (dataLamaArray.length > 0) {
             let konfirmasi = confirm("⚠️ PERINGATAN: Anda masih memiliki data yang sedang dikerjakan!\n\nTombol 'Susun Semua' akan MENGHAPUS seluruh data Anda saat ini.\n(Pilih 'Batal' lalu klik '➕ Tambah Data' jika ingin menyambung data).\n\nYakin ingin menimpa data lama?");
-            if (!konfirmasi) return; // Batalkan proses jika user pilih Batal
+            if (!konfirmasi) return; 
         }
 
         document.getElementById('searchFilter').value = '';
         document.getElementById('sortFilter').value = 'default';
         filterProvinsiAktif = ""; 
+        filterCompanyAktif = "";
         
         const input = document.getElementById('inputData').value;
         const arrayBaru = prosesTextMentah(input, 0);
@@ -823,16 +853,23 @@
             const kotakTeks = kartu.querySelector('.output-box');
             const isiTeksKartu = kotakTeks.value.toLowerCase();
             const provKartu = kotakTeks.getAttribute('data-provinsi');
+            const compKartu = kotakTeks.getAttribute('data-company');
 
             let lolosTeks = isiTeksKartu.includes(kataKunci);
             let lolosProvinsi = (filterProvinsiAktif === "") ? true : (provKartu === filterProvinsiAktif);
+            let lolosCompany = (filterCompanyAktif === "") ? true : (compKartu === filterCompanyAktif);
             
-            if (lolosTeks && lolosProvinsi) {
+            if (lolosTeks && lolosProvinsi && lolosCompany) {
                 kartu.style.display = 'inline-block';
             } else {
                 kartu.style.display = 'none';
             }
         });
+    }
+
+    function parseSaldo(saldoStr) {
+        if(!saldoStr) return 0;
+        return parseInt(saldoStr.replace(/\./g, ''), 10) || 0;
     }
 
     function eksekusiPengurutan() {
@@ -845,6 +882,10 @@
                 return (a.nama || '').localeCompare(b.nama || '');
             } else if (aturanSort === 'nik-asc') {
                 return (a.nik || '').localeCompare(b.nik || '');
+            } else if (aturanSort === 'saldo-desc') {
+                return parseSaldo(b.amount) - parseSaldo(a.amount);
+            } else if (aturanSort === 'saldo-asc') {
+                return parseSaldo(a.amount) - parseSaldo(b.amount);
             } else {
                 return a.index - b.index; 
             }
@@ -862,7 +903,8 @@
         let dataArray = JSON.parse(localStorage.getItem('savedColumnsArray')) || [];
         buatElemenKolom(dataArray);
         eksekusiPengurutan();
-        renderPrioChips(dataArray); 
+        renderProvinsiDropdown(dataArray); 
+        renderCompanyDropdown(dataArray);
     }
 
     function rubahStatusSampah(btnElement, perintah) {
@@ -887,7 +929,8 @@
             localStorage.setItem('savedColumnsArray', JSON.stringify(dataArray));
             buatElemenKolom(dataArray);
             eksekusiPengurutan();
-            renderPrioChips(dataArray);
+            renderProvinsiDropdown(dataArray);
+            renderCompanyDropdown(dataArray);
         }
     }
 
@@ -944,7 +987,8 @@
         wrapperSelesai.innerHTML = ''; 
         wrapperSampah.innerHTML = ''; 
 
-        renderPrioChips(dataArray);
+        renderProvinsiDropdown(dataArray);
+        renderCompanyDropdown(dataArray);
 
         if (dataArray.length > 0) {
             searchArea.style.display = 'block';
@@ -955,6 +999,11 @@
             tabContainer.style.display = 'none'; 
             ruangKerja.style.display = 'none';
         }
+
+        let hitungNik = {};
+        dataArray.forEach(d => {
+            if (d.nik && !d.deleted) hitungNik[d.nik] = (hitungNik[d.nik] || 0) + 1;
+        });
 
         let jumlahAktif = 0;
         let jumlahSelesai = 0;
@@ -967,11 +1016,14 @@
             initHistoriKartu(itemIndex, item.text);
 
             const divCol = document.createElement('div');
+            let isDuplicate = (!item.deleted && item.nik && hitungNik[item.nik] > 1);
             
             if (item.deleted) {
                 divCol.className = 'data-column is-deleted';
             } else if (item.done) {
                 divCol.className = 'data-column is-done';
+            } else if (isDuplicate) {
+                divCol.className = 'data-column is-duplicate';
             } else {
                 divCol.className = 'data-column';
             }
@@ -987,6 +1039,7 @@
 
             let actionHTML = '';
             let queueCheckHTML = '';
+            let duplicateWarningHTML = isDuplicate ? `<div class="duplicate-msg">⚠️ PERHATIAN: NIK INI GANDA</div>` : '';
 
             if (item.deleted) {
                 queueCheckHTML = `<div class="deleted-msg">🗑️ Berada di Tempat Sampah</div>`;
@@ -1002,6 +1055,7 @@
                 let isChecked = item.selected ? 'checked' : '';
                 
                 queueCheckHTML = `
+                    ${duplicateWarningHTML}
                     <div class="mass-check-row">
                         <input type="checkbox" class="send-queue-check" ${isChecked} onchange="simpanKeStorage()"> 📌 Pilih Masuk Antrean
                     </div>`;
@@ -1021,7 +1075,7 @@
                 <div class="col-title ${titleClass}">${titleLabel}</div>
                 ${queueCheckHTML}
                 ${actionHTML}
-                <textarea class="output-box" data-status="${item.status}" data-provinsi="${nmProvinsi}" data-nama="${item.nama || ''}" data-nik="${item.nik || ''}" data-index="${itemIndex}">${item.text}</textarea>
+                <textarea class="output-box" data-status="${item.status}" data-provinsi="${nmProvinsi}" data-company="${item.company || ''}" data-amount="${item.amount || '0'}" data-nama="${item.nama || ''}" data-nik="${item.nik || ''}" data-index="${itemIndex}">${item.text}</textarea>
                 
                 <div class="edit-toolbar">
                     <button onclick="undoTeksKartu(this)">↺ Undo Teks</button>
@@ -1120,7 +1174,8 @@
             let dataArray = JSON.parse(localStorage.getItem('savedColumnsArray')) || [];
             buatElemenKolom(dataArray);
             eksekusiPengurutan(); 
-            renderPrioChips(dataArray);
+            renderProvinsiDropdown(dataArray);
+            renderCompanyDropdown(dataArray);
         }, () => {
             alert("Sistem HP Anda menolak akses salin otomatis.");
         });
@@ -1139,30 +1194,54 @@
         });
     }
 
-    function salinSemuaMassal() {
-        let gabunganSeluruhnya = [];
-        document.querySelectorAll('.data-column').forEach((kartu, i) => {
-            if (kartu.style.display !== 'none' && !kartu.classList.contains('is-deleted')) {
-                let box = kartu.querySelector('.output-box');
-                if(box) gabunganSeluruhnya.push(`=== KOLOM ===\n${box.value}`);
+    function downloadCSV() {
+        let dataArray = JSON.parse(localStorage.getItem('savedColumnsArray')) || [];
+        
+        let csvRows = [];
+        csvRows.push(["No", "NIK", "Nama Lengkap", "Alamat / Wilayah", "Provinsi", "Gender", "Tanggal Lahir", "Status JMO", "Saldo (Rp)", "ID", "Perusahaan", "Tanggal Berakhir"].join(","));
+        
+        let no = 1;
+        dataArray.forEach(item => {
+            if (!item.deleted) { 
+                let barisTeks = item.text.split('\n');
+                
+                if (barisTeks.length >= 14) {
+                    let wilayah = `"${barisTeks[0].replace(/\*/g, '')}"`;
+                    let nik = `"${barisTeks[2]}"`;
+                    let gender = `"${barisTeks[3]}"`;
+                    let tglLahir = `"${barisTeks[4]}"`;
+                    let status = `"${barisTeks[6]}"`;
+                    let saldo = `"${barisTeks[7].replace(/GLOBAL /g, '')}"`;
+                    let perusahaan = `"${barisTeks[8]}"`;
+                    let endDate = `"${barisTeks[9].replace(/N\/A /g, '')}"`;
+                    let id = `"${barisTeks[12]}"`;
+                    let nama = `"${barisTeks[13]}"`;
+                    let prov = `"${item.provinsi || ''}"`;
+                    
+                    csvRows.push([no++, nik, nama, wilayah, prov, gender, tglLahir, status, saldo, id, perusahaan, endDate].join(","));
+                }
             }
         });
 
-        if (gabunganSeluruhnya.length === 0) return alert("Kosong! Selesaikan penyusunan terlebih dahulu.");
-        
-        salinTeksAman(gabunganSeluruhnya.join('\n\n\n'), () => {
-            alert("Seluruh isi kotak data (sesuai filter) telah berhasil disalin massal!");
-        }, () => {
-            alert("Gagal menyalin data massal.");
-        });
-    }
+        if (csvRows.length === 1) {
+            alert("⚠️ Tidak ada data untuk diekspor ke Excel!");
+            return;
+        }
 
-    function tampilkanToast(pesan, warnaSamping) {
-        const toast = document.getElementById('toastNotif');
-        toast.innerText = pesan;
-        toast.style.borderColor = warnaSamping;
-        toast.style.display = 'block';
-        setTimeout(() => { toast.style.display = 'none'; }, 3500);
+        let csvString = csvRows.join("\n");
+        let blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+        let link = document.createElement("a");
+        let url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        
+        let d = new Date();
+        link.setAttribute("download", `Rekap_Data_${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        tampilkanToast("✅ Laporan Excel Berhasil Diunduh!", "#107c41");
     }
 
     function downloadTXTMassal() {
@@ -1190,7 +1269,7 @@
         backupData.columns = [];
         document.querySelectorAll('.output-box').forEach(box => {
             const cardParent = box.parentElement;
-            backupData.columns.push({ status: box.getAttribute('data-status'), nama: box.getAttribute('data-nama'), nik: box.getAttribute('data-nik'), provinsi: box.getAttribute('data-provinsi'), index: box.getAttribute('data-index'), done: cardParent.classList.contains('is-done'), deleted: cardParent.classList.contains('is-deleted'), text: box.value });
+            backupData.columns.push({ status: box.getAttribute('data-status'), nama: box.getAttribute('data-nama'), nik: box.getAttribute('data-nik'), provinsi: box.getAttribute('data-provinsi'), company: box.getAttribute('data-company'), amount: box.getAttribute('data-amount'), index: box.getAttribute('data-index'), done: cardParent.classList.contains('is-done'), deleted: cardParent.classList.contains('is-deleted'), text: box.value });
         });
 
         document.getElementById('inputData').value = '';
@@ -1201,8 +1280,10 @@
         document.getElementById('ruangKerja').style.display = 'none';
         
         filterProvinsiAktif = ""; 
+        filterCompanyAktif = "";
         localStorage.removeItem('savedTab');
         localStorage.removeItem('savedColumnsArray');
+        localStorage.removeItem('savedFilterCompany');
         localStorage.removeItem('savedInput');
         historiPerKartu = {}; 
         
