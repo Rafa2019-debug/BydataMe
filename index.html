@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ByDataKu Full Auto Detect - V27 (Fix Button Color)</title>
+    <title>ByDataKu Full Auto Detect - V27.2 (Ultimate Auto Sync)</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -117,7 +117,6 @@
         .btn-orange { background: var(--warning); }
         .btn-red { background: var(--danger); }
         
-        /* FIX: Nama class baru agar tidak transparan */
         .btn-status-done { background: #334155; color: #ffffff; } 
         .btn-status-undone { background: var(--warning); color: #ffffff; } 
         
@@ -174,7 +173,6 @@
             border-color: var(--primary);
         }
 
-        /* --- DESAIN CHIP PROVINSI (BISA DIGESER) --- */
         .chip-scroll-container {
             display: flex;
             gap: 10px;
@@ -211,7 +209,6 @@
             transform: scale(1.05);
         }
 
-        /* --- DESAIN SISTEM TAB (RUANG TERPISAH) --- */
         .tab-container {
             display: flex;
             gap: 5px;
@@ -395,15 +392,13 @@
 <div class="container">
     <div class="header">
         <h1>❤️ ByDataKu Full Auto Detect</h1>
-        <p>🧠 Filter Provinsi Otomatis & Fix Warna Tombol</p>
+        <p>🧠 V27.2 - Fitur Gabungan: Auto-NIK & Pengaman Hapus</p>
     </div>
     
-    <!-- Tombol Sembunyikan Input (Biar Layar Lega) -->
     <div style="text-align: center; margin-bottom: 15px;">
         <button id="btnToggleInput" class="btn btn-blue" style="border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);" onclick="toggleInputSection()">👁️ Sembunyikan Kotak Input Teks</button>
     </div>
 
-    <!-- AREA INPUT TEKS -->
     <div id="inputSection" class="input-section">
         <label for="inputData">Masukkan Semua Data Mentah WhatsApp:</label>
         <textarea id="inputData" placeholder="Paste baris chat WhatsApp di sini..."></textarea>
@@ -420,7 +415,6 @@
         </div>
     </div>
 
-    <!-- AREA PENGATURAN FILTER & PROVINSI -->
     <div id="searchArea" class="search-area" style="display: none;">
         <div class="filter-row">
             <div class="filter-col">
@@ -437,23 +431,18 @@
             </div>
         </div>
 
-        <!-- FITUR BARU: CHIP FILTER PROVINSI (BISA DIGESER) -->
         <div style="margin-top: 15px; padding-top: 15px; border-top: 2px dashed #cbd5e1;">
             <label style="color:#dc2626;">🗺️ Filter Provinsi / Wilayah (Bisa digeser <->):</label>
-            <div id="prioChipsContainer" class="chip-scroll-container">
-                <!-- Chip Provinsi Otomatis Muncul Disini -->
-            </div>
+            <div id="prioChipsContainer" class="chip-scroll-container"></div>
         </div>
     </div>
 
-    <!-- MENU TAB NAVIGASI -->
     <div id="tabContainer" class="tab-container" style="display: none;">
         <button class="tab-btn active-tab-aktif" id="tabBtnAktif" onclick="gantiTab('aktif')">⏳ Ruang Utama (<span id="hitungAktif">0</span>)</button>
         <button class="tab-btn" id="tabBtnSelesai" onclick="gantiTab('selesai')">✅ Data Selesai (<span id="hitungSelesai">0</span>)</button>
         <button class="tab-btn" id="tabBtnSampah" onclick="gantiTab('sampah')">🗑️ Data Dihapus (<span id="hitungSampah">0</span>)</button>
     </div>
 
-    <!-- RUANG KERJA UTAMA (DIPISAH TIGA TAB) -->
     <div id="ruangKerja" style="display: none;">
         <div id="zonaAktif" class="tab-content active">
             <div id="wrapperAktif" class="columns-wrapper"></div>
@@ -465,7 +454,6 @@
             <div id="wrapperSampah" class="columns-wrapper"></div>
         </div>
     </div>
-
 </div>
 
 <script>
@@ -474,6 +462,7 @@
     let tabSaatIni = 'aktif';
     let filterProvinsiAktif = ""; 
     let statusInputHidden = false; 
+    let dbNIK = {}; // Tempat penyimpanan database NIK ghaib (Auto-Sync)
 
     // --- MINI DATABASE AI (PETA PROVINSI) ---
     const petaProvinsi = {
@@ -488,11 +477,22 @@
     function tebakProvinsi(kabupatenRaw) {
         let kab = kabupatenRaw.toUpperCase().trim();
         for (let prov in petaProvinsi) {
-            if (petaProvinsi[prov].some(k => kab.includes(k))) {
-                return prov;
-            }
+            if (petaProvinsi[prov].some(k => kab.includes(k))) return prov;
         }
         return kab; 
+    }
+
+    // FUNGSI GHAIB: Menyedot database secara silent dari web kodenik
+    function muatDatabaseNIK() {
+        fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://rafa2019-debug.github.io/kodenik/')}`)
+            .then(response => { if (response.ok) return response.json(); })
+            .then(data => {
+                if(data && data.contents) {
+                    let match = data.contents.match(/const\s+db\s*=\s*(\{[\s\S]*?\});/);
+                    if(match) dbNIK = JSON.parse(match[1]); // Berhasil disedot!
+                }
+            })
+            .catch(err => console.log('Sistem berjalan dalam mode offline (Database NIK gagal memuat).'));
     }
 
     function toggleInputSection() {
@@ -513,7 +513,10 @@
     }
 
     window.onload = () => {
+        muatDatabaseNIK(); // Memuat Database NIK otomatis dari background!
+        
         if (localStorage.getItem('savedTab')) gantiTab(localStorage.getItem('savedTab'));
+        if (localStorage.getItem('savedFilterProvinsi')) filterProvinsiAktif = localStorage.getItem('savedFilterProvinsi');
         if (localStorage.getItem('savedInput')) document.getElementById('inputData').value = localStorage.getItem('savedInput');
         if (localStorage.getItem('savedColumnsArray')) {
             const savedArr = JSON.parse(localStorage.getItem('savedColumnsArray'));
@@ -554,6 +557,7 @@
 
     function simpanKeStorage() {
         localStorage.setItem('savedInput', document.getElementById('inputData').value);
+        localStorage.setItem('savedFilterProvinsi', filterProvinsiAktif);
 
         let currentColumns = [];
         document.querySelectorAll('.output-box').forEach(box => {
@@ -619,6 +623,7 @@
         btnSemua.innerText = "SEMUA DAERAH";
         btnSemua.onclick = () => {
             filterProvinsiAktif = "";
+            simpanKeStorage();
             renderPrioChips(JSON.parse(localStorage.getItem('savedColumnsArray')));
             saringKartuLaporan();
         };
@@ -633,11 +638,9 @@
             btn.innerText = `${prov} (${total})`;
             
             btn.onclick = () => {
-                if (filterProvinsiAktif === prov) {
-                    filterProvinsiAktif = ""; 
-                } else {
-                    filterProvinsiAktif = prov; 
-                }
+                if (filterProvinsiAktif === prov) filterProvinsiAktif = ""; 
+                else filterProvinsiAktif = prov; 
+                simpanKeStorage();
                 renderPrioChips(JSON.parse(localStorage.getItem('savedColumnsArray')));
                 saringKartuLaporan(); 
             };
@@ -645,63 +648,67 @@
         });
     }
 
+    // Fungsi Rapi untuk Membentuk Teks Akhir (Mencegah Kode Berulang)
+    function bentukTeksAkhir(data, counterIdx) {
+        let blockText = '';
+        let statusCode = parseInt(data.status, 10);
+        if (statusCode >= 2 && statusCode <= 20) {
+            blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nSENSOR JMO OK\nGLOBAL ${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
+        } else if (statusCode === 1) {
+            blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nTUNGGAL\n${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
+        } else {
+            blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nSTATUS_${data.status}\n${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
+        }
+        return {
+            index: counterIdx, status: data.status, nama: data.nama, nik: data.nik, provinsi: data.provinsi,
+            done: false, deleted: false, selected: true, text: blockText
+        };
+    }
+
     function prosesTextMentah(inputString, indexMulai) {
         let rawProcessedArray = [];
         let errorLines = [];
         let counterIndex = indexMulai;
-
-        const regexBlok = /(?:\[.*?\]\s*.*?:)?\s*Kabupaten:\s*(.+?)\s*\nKecamatan:\s*(.+?)\s*\nKelurahan:\s*(.+?)\s*\n+(\d{16})\s*\n(.+?)\s*\n(.*?)\s*\|\s*(\d{2}-\d{2}-\d{4})\s*\nJUMLAH KPJ:\s*(\d+)\s*\n(\d+)\s*\n(.+?)\s*\n(\d{2}-\d{2}-\d{4})\s*\nTOTAL SALDO\s*:\s*Rp\s*([\d\.]+)(?:\s*\nJMO)?/gi;
-        
         let processedText = inputString;
         let matchBlok;
 
-        while ((matchBlok = regexBlok.exec(inputString)) !== null) {
-            let data = {};
+        // TIPE 1: CARI FORMAT LENGKAP (Ada Tulisan 'Kabupaten:')
+        const regexLengkap = /(?:\[.*?\]\s*.*?:)?\s*Kabupaten:\s*(.+?)\s*\nKecamatan:\s*(.+?)\s*\nKelurahan:\s*(.+?)\s*\n+(\d{16})\s*\n(.+?)\s*\n(.*?)\s*\|\s*(\d{2}-\d{2}-\d{4})\s*\nJUMLAH KPJ:\s*(\d+)\s*\n(\d+)\s*\n(.+?)\s*\n(\d{2}-\d{2}-\d{4})\s*\nTOTAL SALDO\s*:\s*Rp\s*([\d\.]+)(?:\s*\nJMO)?/gi;
+        while ((matchBlok = regexLengkap.exec(processedText)) !== null) {
             let kabLengkap = matchBlok[1].trim(); 
-            data.wilayah = `*${kabLengkap}, ${matchBlok[2].trim()}, ${matchBlok[3].trim()}*`;
-            data.provinsi = tebakProvinsi(kabLengkap); 
-
-            data.nik = matchBlok[4].trim();
-            data.nama = matchBlok[5].trim();
-            let rawGender = matchBlok[6].toUpperCase();
-            data.gender = (rawGender.includes('L') || rawGender.includes('PRIA')) ? 'PRIA' : 'WANITA';
-            data.tglLahir = matchBlok[7].trim();
-            data.status = matchBlok[8].trim(); 
-            data.id1 = matchBlok[9].trim();
-            data.company = matchBlok[10].trim();
-            data.endDate = kurangiSatuBulan(matchBlok[11].trim());
-            
-            let amountRaw = matchBlok[12].trim().replace(/\./g, '');
-            data.amount = parseInt(amountRaw || "0", 10).toLocaleString('id-ID');
-
-            let blockText = '';
-            let statusCode = parseInt(data.status, 10);
-            
-            if (statusCode >= 2 && statusCode <= 20) {
-                blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nSENSOR JMO OK\nGLOBAL ${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
-            } else if (statusCode === 1) {
-                blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nTUNGGAL\n${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
-            } else {
-                blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nSTATUS_${data.status}\n${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
-            }
-
-            rawProcessedArray.push({
-                index: counterIndex++, 
-                status: data.status,
-                nama: data.nama,      
-                nik: data.nik,
-                provinsi: data.provinsi,
-                done: false, 
-                deleted: false,
-                selected: true, 
-                text: blockText
-            });
-
-            processedText = processedText.replace(matchBlok[0], '');
+            let data = {
+                wilayah: `*${kabLengkap}, ${matchBlok[2].trim()}, ${matchBlok[3].trim()}*`,
+                provinsi: tebakProvinsi(kabLengkap), nik: matchBlok[4].trim(), nama: matchBlok[5].trim(),
+                gender: (matchBlok[6].toUpperCase().includes('L') || matchBlok[6].toUpperCase().includes('PRIA')) ? 'PRIA' : 'WANITA',
+                tglLahir: matchBlok[7].trim(), status: matchBlok[8].trim(), id1: matchBlok[9].trim(),
+                company: matchBlok[10].trim(), endDate: kurangiSatuBulan(matchBlok[11].trim()),
+                amount: parseInt(matchBlok[12].trim().replace(/\./g, '') || "0", 10).toLocaleString('id-ID')
+            };
+            rawProcessedArray.push(bentukTeksAkhir(data, counterIndex++));
+            processedText = processedText.replace(matchBlok[0], ''); 
         }
 
-        const lines = processedText.split('\n');
+        // TIPE 2: CARI FORMAT TANPA ALAMAT (Otomatis deteksi dari NIK hasil sinkron)
+        const regexTanpaAlamat = /(?:\[.*?\]\s*.*?:)?\s*(\d{16})\s*\n(.+?)\s*\n(.*?)\s*\|\s*(\d{2}-\d{2}-\d{4})\s*\n(?:JUMLAH KPJ:\s*)?(\d+)\s*\n(\d+)\s*\n(.+?)\s*\n(\d{2}-\d{2}-\d{4})\s*\nTOTAL SALDO\s*:\s*(?:Rp)?\s*([\d\.]+)(?:\s*\nJMO)?/gi;
+        while ((matchBlok = regexTanpaAlamat.exec(processedText)) !== null) {
+            let nikRaw = matchBlok[1].trim();
+            let kodeKab = nikRaw.substring(0, 4);
+            let namaKab = dbNIK[kodeKab] || "Kabupaten Tidak Ditemukan"; // Sinkron NIK otomatis!
+            
+            let data = {
+                wilayah: `*${namaKab}*`,
+                provinsi: tebakProvinsi(namaKab), nik: nikRaw, nama: matchBlok[2].trim(),
+                gender: (matchBlok[3].toUpperCase().includes('L') || matchBlok[3].toUpperCase().includes('PRIA')) ? 'PRIA' : 'WANITA',
+                tglLahir: matchBlok[4].trim(), status: matchBlok[5].trim(), id1: matchBlok[6].trim(),
+                company: matchBlok[7].trim(), endDate: kurangiSatuBulan(matchBlok[8].trim()),
+                amount: parseInt(matchBlok[9].trim().replace(/\./g, '') || "0", 10).toLocaleString('id-ID')
+            };
+            rawProcessedArray.push(bentukTeksAkhir(data, counterIndex++));
+            processedText = processedText.replace(matchBlok[0], ''); 
+        }
 
+        // TIPE 3: FALLBACK (Untuk format manual/spreadsheet)
+        const lines = processedText.split('\n');
         for (let i = 0; i < lines.length; i++) {
             let line = lines[i];
             if (!line.trim()) continue;
@@ -713,70 +720,43 @@
             let cols = cleanLine.split('\t').map(c => c.trim()).filter(c => c !== '');
             
             if (cols.length >= 12) {
-                data.id1 = cols[1];
-                data.nik = cols[2];
-                data.nama = cols[3];
-                data.tglLahir = cols[4];
+                data.id1 = cols[1]; data.nik = cols[2]; data.nama = cols[3]; data.tglLahir = cols[4];
                 data.gender = (cols[5]?.toUpperCase() === 'L') ? 'PRIA' : (cols[5]?.toUpperCase() === 'P' ? 'WANITA' : cols[5]);
-                data.status = cols[6];
-                data.amount = parseInt(cols[7] || "0", 10).toLocaleString('id-ID');
-                data.company = cols[8];
-                data.endDate = kurangiSatuBulan(cols[10]); 
+                data.status = cols[6]; data.amount = parseInt(cols[7] || "0", 10).toLocaleString('id-ID');
+                data.company = cols[8]; data.endDate = kurangiSatuBulan(cols[10]); 
                 let kabLengkap = cols[11];
                 data.wilayah = `*${kabLengkap}, ${cols[12]}, ${cols[13]}*`;
                 data.provinsi = tebakProvinsi(kabLengkap);
+                rawProcessedArray.push(bentukTeksAkhir(data, counterIndex++));
             } else {
                 let match = cleanLine.match(/^(\d+)\s+(\d+)\s+(\d+)\s+(.*?)\s+(\d{2}-\d{2}-\d{4})\s*(L|P|l|p)\s*(\d+)\s+(\d+)\s+(.*?)\s+(\d{2}-\d{2}-\d{4})\s+(\d{2}-\d{2}-\d{4})\s+(.*?)(?:\s+success)?$/i);
                 if (match) {
-                    data.id1 = match[2];
-                    data.nik = match[3];
-                    data.nama = match[4];
-                    data.tglLahir = match[5];
+                    data.id1 = match[2]; data.nik = match[3]; data.nama = match[4]; data.tglLahir = match[5];
                     data.gender = match[6].toUpperCase() === 'L' ? 'PRIA' : 'WANITA';
-                    data.status = match[7];
-                    data.amount = parseInt(match[8] || "0", 10).toLocaleString('id-ID');
-                    data.company = match[9];
-                    data.endDate = kurangiSatuBulan(match[11]); 
+                    data.status = match[7]; data.amount = parseInt(match[8] || "0", 10).toLocaleString('id-ID');
+                    data.company = match[9]; data.endDate = kurangiSatuBulan(match[11]); 
                     let wilayahRaw = match[12];
                     data.wilayah = wilayahRaw.includes('  ') ? `*${wilayahRaw.replace(/\s{2,}/g, ', ')}*` : `*${wilayahRaw}*`;
-                    
-                    let parts = wilayahRaw.split(/[, ]+/);
-                    data.provinsi = tebakProvinsi(parts[0]); 
+                    data.provinsi = tebakProvinsi(wilayahRaw.split(/[, ]+/)[0]); 
+                    rawProcessedArray.push(bentukTeksAkhir(data, counterIndex++));
                 } else {
                     errorLines.push(i + 1);
-                    continue; 
                 }
             }
-
-            let blockText = '';
-            let statusCode = parseInt(data.status, 10);
-            
-            if (statusCode >= 2 && statusCode <= 20) {
-                blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nSENSOR JMO OK\nGLOBAL ${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
-            } else if (statusCode === 1) {
-                blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nTUNGGAL\n${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
-            } else {
-                blockText = `${data.wilayah}\n\n${data.nik}\n${data.gender}\n${data.tglLahir}\n\nSTATUS_${data.status}\n${data.amount}\n${data.company}\nN/A ${data.endDate}\n\nQwer123@\n${data.id1}\n${data.nama}`;
-            }
-
-            rawProcessedArray.push({
-                index: counterIndex++, 
-                status: data.status,
-                nama: data.nama,      
-                nik: data.nik,
-                provinsi: data.provinsi,
-                done: false, 
-                deleted: false,
-                selected: true, 
-                text: blockText
-            });
         }
 
-        if (errorLines.length > 0) alert(`⚠️ Beberapa teks gagal diproses (format tidak dikenali).`);
+        if (errorLines.length > 0) alert(`⚠️ Beberapa baris teks gagal diproses (format tidak dikenali).`);
         return rawProcessedArray;
     }
 
     function susunSemua() {
+        // --- FITUR PENGAMAN ANTI-SALAH KLIK ---
+        let dataLamaArray = JSON.parse(localStorage.getItem('savedColumnsArray')) || [];
+        if (dataLamaArray.length > 0) {
+            let konfirmasi = confirm("⚠️ PERINGATAN: Anda masih memiliki data yang sedang dikerjakan!\n\nTombol 'Susun Semua' akan MENGHAPUS seluruh data Anda saat ini.\n(Pilih 'Batal' lalu klik '➕ Tambah Data' jika ingin menyambung data).\n\nYakin ingin menimpa data lama?");
+            if (!konfirmasi) return; // Batalkan proses jika user pilih Batal
+        }
+
         document.getElementById('searchFilter').value = '';
         document.getElementById('sortFilter').value = 'default';
         filterProvinsiAktif = ""; 
@@ -964,7 +944,6 @@
         wrapperSelesai.innerHTML = ''; 
         wrapperSampah.innerHTML = ''; 
 
-        // RENDER CHIPS PROVINSI
         renderPrioChips(dataArray);
 
         if (dataArray.length > 0) {
